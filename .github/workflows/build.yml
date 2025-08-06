@@ -26,15 +26,29 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        sleep 3
         
     - name: 📦 Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
+    - name: 🔧 Setup Test Environment
+      run: |
+        export QT_QPA_PLATFORM=offscreen
+        export QT_LOGGING_RULES="qt.qpa.xcb.warning=false"
+        export DISPLAY=:99
+        echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+        echo "QT_LOGGING_RULES=qt.qpa.xcb.warning=false" >> $GITHUB_ENV
+        echo "DISPLAY=:99" >> $GITHUB_ENV
+        
     - name: 🧪 Run Tests
       run: |
-        xvfb-run -a python test/fast_test_runner.py
+        export DISPLAY=:99
+        export QT_QPA_PLATFORM=offscreen
+        python test/ci_test_runner.py
 
   build:
     name: 🏗️ Build Apps

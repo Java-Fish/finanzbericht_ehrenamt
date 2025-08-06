@@ -18,6 +18,25 @@ def setup_gui_test_environment():
     os.environ['QT_LOGGING_RULES'] = 'qt.qpa.xcb.warning=false'
 
 
+def setup_import_paths():
+    """
+    Richtet die Import-Pfade für Tests ein.
+    Funktioniert sowohl lokal als auch in CI/CD-Umgebungen.
+    """
+    # Finde das Projekt-Root-Verzeichnis
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    # Füge Projekt-Root zum Python-Pfad hinzu, wenn nicht bereits vorhanden
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    
+    # Stelle sicher, dass src-Verzeichnis existiert
+    src_dir = os.path.join(project_root, 'src')
+    if not os.path.exists(src_dir):
+        raise ImportError(f"Source directory not found: {src_dir}")
+
+
 def create_qapplication():
     """
     Erstellt eine QApplication-Instanz für Tests.
@@ -69,6 +88,7 @@ def safe_gui_test(test_func):
     def wrapper(*args, **kwargs):
         try:
             setup_gui_test_environment()
+            setup_import_paths()
             return test_func(*args, **kwargs)
         except Exception as e:
             error_msg = str(e).lower()
@@ -86,3 +106,4 @@ def safe_gui_test(test_func):
 
 # Automatisches Setup beim Import
 setup_gui_test_environment()
+setup_import_paths()

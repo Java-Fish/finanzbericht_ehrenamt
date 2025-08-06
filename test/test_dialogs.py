@@ -8,8 +8,15 @@ import sys
 import os
 from pathlib import Path
 
-# Projekt-Root zum Python-Pfad hinzufügen
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Import setup
+try:
+    from test_utils import setup_import_paths, create_qapplication
+    setup_import_paths()
+except ImportError:
+    # Fallback wenn test_utils nicht verfügbar
+    project_root = str(Path(__file__).parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 def test_dialog_imports():
     """Testet Import der Dialog-Module"""
@@ -36,10 +43,21 @@ def test_about_dialog_creation():
     print("📄 Teste AboutDialog Erstellung...")
     
     try:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from test_utils import create_qapplication
+        # Import mit Fallback
+        try:
+            from test_utils import create_qapplication
+        except ImportError:
+            def create_qapplication():
+                try:
+                    from PySide6.QtWidgets import QApplication
+                    app = QApplication.instance()
+                    if app is None:
+                        app = QApplication(sys.argv)
+                        app.setQuitOnLastWindowClosed(False)
+                    return app
+                except ImportError:
+                    return None
+        
         from src.dialogs.about_dialog import AboutDialog
         
         # QApplication für GUI-Objekte
