@@ -106,6 +106,7 @@ jobs:
         pip install Pillow
 
     - name: 🏗️ Build Application
+      shell: bash
       run: |
         echo "🔍 Debug: Vor dem Build"
         ls -la
@@ -165,8 +166,8 @@ jobs:
           echo "🪟 Windows Build - suche nach .exe..."
           
           # Suche nach Windows .exe (PyInstaller)
-          if [ -f "build/${{ matrix.executable_name }}" ]; then
-            cp "build/${{ matrix.executable_name }}" artifacts/
+          if [ -f "build/Finanzauswertung_Ehrenamt.exe" ]; then
+            cp "build/Finanzauswertung_Ehrenamt.exe" artifacts/
             echo "✅ Windows .exe gefunden und kopiert"
             FOUND_ASSET=true
           elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" ]; then
@@ -174,14 +175,19 @@ jobs:
             cp "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" "artifacts/Finanzauswertung_Ehrenamt.exe"
             echo "✅ Windows .exe aus PyInstaller-Ordner kopiert"
             FOUND_ASSET=true
+          elif [ -f "build/Finanzauswertung_Ehrenamt.bat" ]; then
+            # Fallback build
+            cp "build/Finanzauswertung_Ehrenamt.bat" artifacts/
+            echo "✅ Windows Fallback .bat kopiert"
+            FOUND_ASSET=true
           fi
           
         elif [ "${{ matrix.platform }}" = "macos" ]; then
           echo "🍎 macOS Build - suche nach .app..."
           
           # Suche nach macOS .app Bundle
-          if [ -d "build/${{ matrix.executable_name }}" ]; then
-            cp -r "build/${{ matrix.executable_name }}" artifacts/
+          if [ -d "build/Finanzauswertung_Ehrenamt.app" ]; then
+            cp -r "build/Finanzauswertung_Ehrenamt.app" artifacts/
             echo "✅ macOS .app Bundle gefunden und kopiert"
             FOUND_ASSET=true
           elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
@@ -211,9 +217,9 @@ jobs:
           echo "🐧 Linux Build - suche nach Executable..."
           
           # Suche nach Linux Executable
-          if [ -f "build/${{ matrix.executable_name }}" ]; then
-            cp "build/${{ matrix.executable_name }}" artifacts/
-            chmod +x "artifacts/${{ matrix.executable_name }}"
+          if [ -f "build/Finanzauswertung_Ehrenamt" ]; then
+            cp "build/Finanzauswertung_Ehrenamt" artifacts/
+            chmod +x "artifacts/Finanzauswertung_Ehrenamt"
             echo "✅ Linux Executable gefunden und kopiert"
             FOUND_ASSET=true
           elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
@@ -227,18 +233,19 @@ jobs:
         
         # Falls kein Asset gefunden wurde, verwende Fallback
         if [ "$FOUND_ASSET" = "false" ]; then
-          echo "❌ Kein plattform-spezifisches Asset gefunden - verwende Fallback"
-          
-          # Kopiere Release-Info aber KEINE Python-Dateien
-          cp release_info.md artifacts/ 2>/dev/null || true
+          echo "❌ Kein plattform-spezifisches Asset gefunden - BUILD FEHLGESCHLAGEN"
           
           # Erstelle eine Fehlermeldung-Datei
           echo "❌ Build fehlgeschlagen für ${{ matrix.platform }}" > "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
           echo "Siehe GitHub Actions Logs für Details" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
-        else
-          # Kopiere Release-Info bei erfolgreichem Build
-          cp release_info.md artifacts/ 2>/dev/null || true
+          
+          # Zeige Build-Directory für Debug
+          echo "🔍 Build-Directory Debug:" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
+          find build/ 2>/dev/null | head -20 >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt" || echo "Build-Directory nicht gefunden" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
         fi
+        
+        # Kopiere Release-Info
+        cp release_info.md artifacts/ 2>/dev/null || true
         
         # Zeige finale Artefakte
         echo "🔍 Finale Artefakte:"
