@@ -13,6 +13,36 @@ import platform
 from pathlib import Path
 import tempfile
 
+# Windows-Encoding-Problem beheben
+if platform.system() == "Windows":
+    try:
+        # Setze UTF-8 Encoding für Windows Terminal
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+        USE_EMOJIS = True
+    except:
+        # Fallback für ältere Python-Versionen oder problematische Encodings
+        USE_EMOJIS = False
+else:
+    USE_EMOJIS = True
+
+def safe_print(message):
+    """Sichere Print-Funktion die Emojis nur verwendet wenn unterstützt"""
+    if not USE_EMOJIS:
+        # Ersetze Emojis durch ASCII-Zeichen für Windows
+        message = message.replace("🏗️", "[BUILD]")
+        message = message.replace("🤖", "[CI]")
+        message = message.replace("📦", "[PKG]")
+        message = message.replace("✅", "[OK]")
+        message = message.replace("❌", "[FAIL]")
+        message = message.replace("🔍", "[INFO]")
+        message = message.replace("🔄", "[RETRY]")
+        message = message.replace("🎉", "[SUCCESS]")
+        message = message.replace("💥", "[ERROR]")
+        message = message.replace("🖥️", "[PLATFORM]")
+        message = message.replace("📁", "[DIR]")
+    print(message)
+
 class CIBuildManager:
     """CI-optimierter Build Manager für GitHub Actions"""
     
@@ -39,13 +69,13 @@ class CIBuildManager:
         """Setup für CI-Umgebungen"""
         # CI Environment Variables
         if os.environ.get('CI') == 'true' or os.environ.get('GITHUB_ACTIONS') == 'true':
-            print("🤖 CI-Umgebung erkannt - optimiere Build-Prozess...")
+            safe_print("🤖 CI-Umgebung erkannt - optimiere Build-Prozess...")
             # Setze QT Platform für CI
             os.environ['QT_QPA_PLATFORM'] = 'offscreen'
             
     def create_simple_build(self):
         """Erstellt einen einfachen Build ohne komplexe Dependencies"""
-        print(f"🏗️ Starte einfachen Build für {self.current_platform}...")
+        safe_print(f"🏗️ Starte einfachen Build für {self.current_platform}...")
         
         try:
             # Säubere build/ directory
@@ -78,42 +108,42 @@ class CIBuildManager:
                 else:
                     cmd.extend(["--add-data", "resources:resources"])
             
-            print(f"📦 PyInstaller Command: {' '.join(cmd)}")
+            safe_print(f"📦 PyInstaller Command: {' '.join(cmd)}")
             
             # Führe PyInstaller aus
             result = subprocess.run(cmd, cwd=self.project_root, capture_output=True, text=True)
             
             if result.returncode == 0:
-                print("✅ Build erfolgreich!")
+                safe_print("✅ Build erfolgreich!")
                 
                 # Zeige Build-Ergebnisse
                 self.show_build_results()
                 return True
             else:
-                print(f"❌ Build fehlgeschlagen!")
+                safe_print(f"❌ Build fehlgeschlagen!")
                 print(f"STDOUT: {result.stdout}")
                 print(f"STDERR: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Build-Fehler: {e}")
+            safe_print(f"❌ Build-Fehler: {e}")
             return False
     
     def show_build_results(self):
         """Zeigt die Build-Ergebnisse an"""
-        print("\n🔍 Build-Ergebnisse:")
+        safe_print("\n🔍 Build-Ergebnisse:")
         
         if self.build_dir.exists():
             for file in self.build_dir.iterdir():
                 if file.is_file():
                     size = file.stat().st_size
-                    print(f"  📄 {file.name} ({size:,} bytes)")
+                    safe_print(f"  📄 {file.name} ({size:,} bytes)")
         else:
-            print("  ❌ Build-Directory nicht gefunden!")
+            safe_print("  ❌ Build-Directory nicht gefunden!")
     
     def create_fallback_executable(self):
         """Erstellt ein Fallback-Executable wenn PyInstaller fehlschlägt"""
-        print("🔄 Erstelle Fallback-Executable...")
+        safe_print("🔄 Erstelle Fallback-Executable...")
         
         try:
             # Erstelle einfaches Launcher-Script
@@ -224,36 +254,36 @@ pause
             if (self.project_root / "main.py").exists():
                 shutil.copy2(self.project_root / "main.py", self.build_dir)
             
-            print(f"✅ Fallback-Executable erstellt: {executable_name}")
+            safe_print(f"✅ Fallback-Executable erstellt: {executable_name}")
             return True
             
         except Exception as e:
-            print(f"❌ Fallback-Erstellung fehlgeschlagen: {e}")
+            safe_print(f"❌ Fallback-Erstellung fehlgeschlagen: {e}")
             return False
 
 def main():
     """Hauptfunktion für CI-Build"""
-    print("🏗️ CI-Build Manager")
-    print("=" * 50)
+    safe_print("🏗️ CI-Build Manager")
+    safe_print("=" * 50)
     
     builder = CIBuildManager()
     
-    print(f"🖥️ Plattform: {builder.current_platform}")
-    print(f"📁 Build-Directory: {builder.build_dir}")
+    safe_print(f"🖥️ Plattform: {builder.current_platform}")
+    safe_print(f"📁 Build-Directory: {builder.build_dir}")
     
     # Versuche zuerst PyInstaller-Build
     success = builder.create_simple_build()
     
     # Falls das fehlschlägt, erstelle Fallback
     if not success:
-        print("\n🔄 PyInstaller fehlgeschlagen - erstelle Fallback...")
+        safe_print("\n🔄 PyInstaller fehlgeschlagen - erstelle Fallback...")
         success = builder.create_fallback_executable()
     
     if success:
-        print("\n🎉 Build abgeschlossen!")
+        safe_print("\n🎉 Build abgeschlossen!")
         sys.exit(0)
     else:
-        print("\n💥 Build fehlgeschlagen!")
+        safe_print("\n💥 Build fehlgeschlagen!")
         sys.exit(1)
 
 if __name__ == "__main__":
