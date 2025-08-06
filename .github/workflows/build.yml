@@ -107,7 +107,12 @@ jobs:
 
     - name: 🏗️ Build Application
       run: |
+        echo "🔍 Debug: Vor dem Build"
+        ls -la
         python ci_build.py
+        echo "🔍 Debug: Nach dem Build"
+        ls -la build/ || echo "Build-Directory nicht gefunden"
+        find build/ -name "*" || echo "Build-Directory leer"
 
     - name: 📝 Create Release Info
       shell: bash
@@ -150,70 +155,94 @@ jobs:
       run: |
         mkdir -p artifacts
         
+        echo "🔍 Debug: Build-Verzeichnis Inhalt:"
+        find build/ -type f 2>/dev/null || echo "Build-Verzeichnis nicht gefunden"
+        
         # Bestimme die zu kopierenden Dateien basierend auf der Plattform
+        FOUND_ASSET=false
+        
         if [ "${{ matrix.platform }}" = "windows" ]; then
-          # Windows: Suche nach .exe und .bat Dateien
+          echo "🪟 Windows Build - suche nach .exe..."
+          
+          # Suche nach Windows .exe (PyInstaller)
           if [ -f "build/${{ matrix.executable_name }}" ]; then
             cp "build/${{ matrix.executable_name }}" artifacts/
-            echo "✅ Windows .exe kopiert"
-          elif [ -d "build/${{ matrix.executable_name }}" ]; then
+            echo "✅ Windows .exe gefunden und kopiert"
+            FOUND_ASSET=true
+          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" ]; then
             # PyInstaller onedir build
-            cp -r "build/${{ matrix.executable_name }}" artifacts/
-            echo "✅ Windows Build-Ordner kopiert"
-          elif [ -f "build/Finanzauswertung_Ehrenamt.bat" ]; then
-            cp "build/Finanzauswertung_Ehrenamt.bat" artifacts/
-            cp "build/Finanzauswertung_Ehrenamt.py" artifacts/ 2>/dev/null || true
-            cp -r build/src artifacts/ 2>/dev/null || true
-            cp -r build/resources artifacts/ 2>/dev/null || true
-            cp build/requirements.txt artifacts/ 2>/dev/null || true
-            cp build/main.py artifacts/ 2>/dev/null || true
-            echo "✅ Windows Fallback-Build kopiert"
+            cp "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" "artifacts/Finanzauswertung_Ehrenamt.exe"
+            echo "✅ Windows .exe aus PyInstaller-Ordner kopiert"
+            FOUND_ASSET=true
           fi
           
         elif [ "${{ matrix.platform }}" = "macos" ]; then
-          # macOS: Suche nach .app Bundle
+          echo "🍎 macOS Build - suche nach .app..."
+          
+          # Suche nach macOS .app Bundle
           if [ -d "build/${{ matrix.executable_name }}" ]; then
             cp -r "build/${{ matrix.executable_name }}" artifacts/
-            echo "✅ macOS .app Bundle kopiert"
-          elif [ -d "build/Finanzauswertung_Ehrenamt" ]; then
-            # PyInstaller onedir build
-            mv "build/Finanzauswertung_Ehrenamt" "build/Finanzauswertung_Ehrenamt.app"
-            cp -r "build/Finanzauswertung_Ehrenamt.app" artifacts/
-            echo "✅ macOS Build zu .app umbenannt und kopiert"
+            echo "✅ macOS .app Bundle gefunden und kopiert"
+            FOUND_ASSET=true
+          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
+            # PyInstaller onedir - erstelle .app Bundle
+            mkdir -p "artifacts/Finanzauswertung_Ehrenamt.app/Contents/MacOS"
+            cp -r "build/Finanzauswertung_Ehrenamt/"* "artifacts/Finanzauswertung_Ehrenamt.app/Contents/MacOS/"
+            # Info.plist erstellen
+            cat > "artifacts/Finanzauswertung_Ehrenamt.app/Contents/Info.plist" << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>Finanzauswertung_Ehrenamt</string>
+            <key>CFBundleIdentifier</key>
+            <string>org.ehrenamt-tools.finanzauswertung</string>
+            <key>CFBundleName</key>
+            <string>Finanzauswertung_Ehrenamt</string>
+        </dict>
+        </plist>
+        EOF
+            echo "✅ macOS .app Bundle aus PyInstaller-Ordner erstellt"
+            FOUND_ASSET=true
           fi
           
         else
-          # Linux: Suche nach Executable oder Ordner
+          echo "🐧 Linux Build - suche nach Executable..."
+          
+          # Suche nach Linux Executable
           if [ -f "build/${{ matrix.executable_name }}" ]; then
             cp "build/${{ matrix.executable_name }}" artifacts/
             chmod +x "artifacts/${{ matrix.executable_name }}"
-            echo "✅ Linux Executable kopiert"
-          elif [ -d "build/${{ matrix.executable_name }}" ]; then
-            # PyInstaller onedir build
-            cp -r "build/${{ matrix.executable_name }}" artifacts/
-            echo "✅ Linux Build-Ordner kopiert"
-          elif [ -f "build/Finanzauswertung_Ehrenamt.py" ]; then
-            # Fallback build
-            cp "build/Finanzauswertung_Ehrenamt.py" "artifacts/Finanzauswertung_Ehrenamt"
+            echo "✅ Linux Executable gefunden und kopiert"
+            FOUND_ASSET=true
+          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
+            # PyInstaller onedir
+            cp "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" "artifacts/Finanzauswertung_Ehrenamt"
             chmod +x "artifacts/Finanzauswertung_Ehrenamt"
-            cp -r build/src artifacts/ 2>/dev/null || true
-            cp -r build/resources artifacts/ 2>/dev/null || true
-            cp build/requirements.txt artifacts/ 2>/dev/null || true
-            cp build/main.py artifacts/ 2>/dev/null || true
-            echo "✅ Linux Fallback-Build kopiert"
+            echo "✅ Linux Executable aus PyInstaller-Ordner kopiert"
+            FOUND_ASSET=true
           fi
         fi
         
-        # Kopiere Release-Info falls vorhanden
-        cp release_info.md artifacts/ 2>/dev/null || true
+        # Falls kein Asset gefunden wurde, verwende Fallback
+        if [ "$FOUND_ASSET" = "false" ]; then
+          echo "❌ Kein plattform-spezifisches Asset gefunden - verwende Fallback"
+          
+          # Kopiere Release-Info aber KEINE Python-Dateien
+          cp release_info.md artifacts/ 2>/dev/null || true
+          
+          # Erstelle eine Fehlermeldung-Datei
+          echo "❌ Build fehlgeschlagen für ${{ matrix.platform }}" > "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
+          echo "Siehe GitHub Actions Logs für Details" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
+        else
+          # Kopiere Release-Info bei erfolgreichem Build
+          cp release_info.md artifacts/ 2>/dev/null || true
+        fi
         
-        # Zeige was wirklich gebaut wurde
+        # Zeige finale Artefakte
         echo "🔍 Finale Artefakte:"
-        find artifacts -type f -name "*" | head -20
-        
-        # Zeige Build-Directory Inhalt zur Diagnose
-        echo "🔍 Build-Directory Inhalt:"
-        find build -name "*" -type f | head -20 || echo "Build-Directory leer"
+        ls -la artifacts/
 
     - name: ⬆️ Upload Build Artifacts
       uses: actions/upload-artifact@v4

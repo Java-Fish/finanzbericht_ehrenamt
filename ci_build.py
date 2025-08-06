@@ -98,15 +98,15 @@ class CIBuildManager:
             # Füge nur existierende Verzeichnisse hinzu
             if (self.project_root / "src").exists():
                 if self.current_platform == "windows":
-                    cmd.extend(["--add-data", "src;src"])
+                    cmd.extend(["--add-data", f"{self.project_root / 'src'};src"])
                 else:
-                    cmd.extend(["--add-data", "src:src"])
+                    cmd.extend(["--add-data", f"{self.project_root / 'src'}:src"])
             
             if (self.project_root / "resources").exists():
                 if self.current_platform == "windows":
-                    cmd.extend(["--add-data", "resources;resources"])
+                    cmd.extend(["--add-data", f"{self.project_root / 'resources'};resources"])
                 else:
-                    cmd.extend(["--add-data", "resources:resources"])
+                    cmd.extend(["--add-data", f"{self.project_root / 'resources'}:resources"])
             
             safe_print(f"📦 PyInstaller Command: {' '.join(cmd)}")
             
