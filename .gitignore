@@ -28,6 +28,7 @@ test_*.csv
 test_*.xlsx
 test_*.ods
 test_*.pdf
+/build*
 
 # Distribution / packaging
 .Python

@@ -146,18 +146,24 @@ class CIBuildManager:
                 contents_dir = app_bundle / "Contents"
                 macos_dir = contents_dir / "MacOS"
                 resources_dir = contents_dir / "Resources"
+                frameworks_dir = contents_dir / "Frameworks"
                 
                 app_bundle.mkdir(exist_ok=True)
                 contents_dir.mkdir(exist_ok=True)
                 macos_dir.mkdir(exist_ok=True)
                 resources_dir.mkdir(exist_ok=True)
+                frameworks_dir.mkdir(exist_ok=True)
                 
                 # Verschiebe PyInstaller Output in .app
                 for item in dist_dir.iterdir():
-                    shutil.move(str(item), str(macos_dir))
+                    target = macos_dir / item.name
+                    if item.is_dir():
+                        shutil.copytree(item, target, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(item, target)
                 
                 # Entferne alten Ordner
-                dist_dir.rmdir()
+                shutil.rmtree(dist_dir)
                 
                 # Info.plist erstellen
                 plist_content = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -170,19 +176,38 @@ class CIBuildManager:
     <string>org.ehrenamt-tools.finanzauswertung</string>
     <key>CFBundleName</key>
     <string>{self.app_name}</string>
+    <key>CFBundleDisplayName</key>
+    <string>Finanzauswertung Ehrenamt</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
 </dict>
 </plist>'''
                 
                 with open(contents_dir / "Info.plist", 'w') as f:
                     f.write(plist_content)
                 
+                # Mache Executable ausführbar
+                main_exec = macos_dir / self.app_name
+                if main_exec.exists():
+                    os.chmod(main_exec, 0o755)
+                
                 safe_print("✅ macOS .app Bundle erstellt!")
+            
+            # Prüfe ob .app Bundle korrekt erstellt wurde
+            if app_bundle.exists():
+                safe_print(f"✅ macOS .app Bundle verfügbar: {app_bundle}")
+            else:
+                safe_print("❌ macOS .app Bundle konnte nicht erstellt werden!")
         
         elif self.current_platform == "windows":
             # Für Windows: Stelle sicher, dass .exe existiert
@@ -191,8 +216,11 @@ class CIBuildManager:
             
             if dist_dir.exists() and exe_file.exists():
                 # Kopiere .exe eine Ebene höher für einfacheren Zugriff
-                shutil.copy2(exe_file, self.build_dir / f"{self.app_name}.exe")
-                safe_print("✅ Windows .exe bereitgestellt!")
+                target_exe = self.build_dir / f"{self.app_name}.exe"
+                shutil.copy2(exe_file, target_exe)
+                safe_print(f"✅ Windows .exe bereitgestellt: {target_exe}")
+            else:
+                safe_print("❌ Windows .exe konnte nicht gefunden werden!")
         
         elif self.current_platform == "linux":
             # Für Linux: Stelle sicher, dass Executable ausführbar ist
@@ -201,9 +229,12 @@ class CIBuildManager:
             
             if dist_dir.exists() and exe_file.exists():
                 # Kopiere Executable eine Ebene höher
-                shutil.copy2(exe_file, self.build_dir / self.app_name)
-                os.chmod(self.build_dir / self.app_name, 0o755)
-                safe_print("✅ Linux Executable bereitgestellt!")
+                target_exe = self.build_dir / self.app_name
+                shutil.copy2(exe_file, target_exe)
+                os.chmod(target_exe, 0o755)
+                safe_print(f"✅ Linux Executable bereitgestellt: {target_exe}")
+            else:
+                safe_print("❌ Linux Executable konnte nicht gefunden werden!")
     
     def show_build_results(self):
         """Zeigt die Build-Ergebnisse an"""
@@ -281,10 +312,16 @@ pause
     <string>org.ehrenamt-tools.finanzauswertung</string>
     <key>CFBundleName</key>
     <string>{self.app_name}</string>
+    <key>CFBundleDisplayName</key>
+    <string>Finanzauswertung Ehrenamt</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
 </dict>
 </plist>'''
                 
@@ -293,14 +330,34 @@ pause
                 
                 # Executable in MacOS/ erstellen
                 launcher_path = macos_dir / self.app_name
+                
+                # Erstelle macOS-spezifischen Launcher
+                macos_launcher = f'''#!/bin/bash
+# macOS Launcher für {self.app_name}
+cd "$(dirname "$0")"
+export PYTHONPATH="../Resources:$PYTHONPATH"
+python3 "../Resources/{self.app_name}.py"
+'''
+                
+                with open(launcher_path, 'w', encoding='utf-8') as f:
+                    f.write(macos_launcher)
+                
+                # Mache ausführbar
+                os.chmod(launcher_path, 0o755)
+                
+                # Python-Launcher in Resources/
+                python_launcher_path = resources_dir / f"{self.app_name}.py"
             else:
                 # Linux
                 executable_name = self.app_name
                 launcher_path = self.build_dir / executable_name
             
-            # Schreibe Python-Launcher
+            # Schreibe Python-Launcher (außer für macOS, das hat eigenen Launcher)
             if self.current_platform != "macos":
                 launcher_path = self.build_dir / f"{self.app_name}.py"
+            else:
+                # Für macOS: Schreibe in Resources/
+                launcher_path = python_launcher_path
             
             with open(launcher_path, 'w', encoding='utf-8') as f:
                 f.write(launcher_content)
@@ -311,24 +368,27 @@ pause
             
             # Kopiere Projekt-Dateien
             if (self.project_root / "src").exists():
-                shutil.copytree(self.project_root / "src", self.build_dir / "src", dirs_exist_ok=True)
+                if self.current_platform == "macos":
+                    # Für macOS in Resources/ kopieren
+                    shutil.copytree(self.project_root / "src", resources_dir / "src", dirs_exist_ok=True)
+                else:
+                    shutil.copytree(self.project_root / "src", self.build_dir / "src", dirs_exist_ok=True)
             
             if (self.project_root / "resources").exists():
                 if self.current_platform == "macos":
                     # Für macOS in Resources/ kopieren
-                    shutil.copytree(self.project_root / "resources", 
-                                  self.build_dir / f"{self.app_name}.app" / "Contents" / "Resources" / "resources", 
-                                  dirs_exist_ok=True)
+                    shutil.copytree(self.project_root / "resources", resources_dir / "resources", dirs_exist_ok=True)
                 else:
                     shutil.copytree(self.project_root / "resources", self.build_dir / "resources", dirs_exist_ok=True)
             
-            # Kopiere requirements.txt
-            if (self.project_root / "requirements.txt").exists():
-                shutil.copy2(self.project_root / "requirements.txt", self.build_dir)
+            # Kopiere requirements.txt und main.py
+            target_dir = resources_dir if self.current_platform == "macos" else self.build_dir
             
-            # Kopiere main.py
+            if (self.project_root / "requirements.txt").exists():
+                shutil.copy2(self.project_root / "requirements.txt", target_dir)
+            
             if (self.project_root / "main.py").exists():
-                shutil.copy2(self.project_root / "main.py", self.build_dir)
+                shutil.copy2(self.project_root / "main.py", target_dir)
             
             safe_print(f"✅ Fallback-Executable erstellt: {executable_name}")
             return True

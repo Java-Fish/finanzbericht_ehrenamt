@@ -99,11 +99,22 @@ jobs:
       if: matrix.platform == 'macos'
       run: |
         pip install icnsutil
+        # Installiere macOS spezifische Abhängigkeiten
+        pip install py2app || echo "py2app installation failed - will use PyInstaller"
 
     - name: 🎨 Install Icon Tools (Windows/Linux) 
       if: matrix.platform != 'macos'
       run: |
         pip install Pillow
+
+    - name: 📦 Install Platform Dependencies
+      shell: bash
+      run: |
+        if [ "${{ matrix.platform }}" = "linux" ]; then
+          # Linux spezifische Abhängigkeiten
+          sudo apt-get update
+          sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0
+        fi
 
     - name: 🏗️ Build Application
       shell: bash
