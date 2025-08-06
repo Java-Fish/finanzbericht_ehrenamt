@@ -3,7 +3,9 @@ name: 🏗️ Build Apps for All Platforms
 on:
   push:
     branches: [ main, master ]
-    tags: [ 'v*' ]
+    tags: 
+      - 'v*'
+      - 'release_*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:  # Manueller Trigger
@@ -106,17 +108,38 @@ jobs:
     - name: 📝 Create Release Info
       shell: bash
       run: |
-        echo "# 📊 Finanzauswertung Ehrenamt" > release_info.md
-        echo "**Version:** 1.0.0" >> release_info.md
-        echo "**Build-Datum:** $(date '+%d.%m.%Y %H:%M:%S')" >> release_info.md  
-        echo "**Plattform:** ${{ matrix.platform }}" >> release_info.md
-        echo "**Python:** $(python --version)" >> release_info.md
+        # Extrahiere Version aus Tag (release_1.0.0 -> 1.0.0 oder v1.0.0 -> 1.0.0)
+        if [[ "${{ github.ref_name }}" =~ ^release_(.+)$ ]]; then
+          VERSION="${BASH_REMATCH[1]}"
+        elif [[ "${{ github.ref_name }}" =~ ^v(.+)$ ]]; then
+          VERSION="${BASH_REMATCH[1]}"
+        else
+          VERSION="1.0.0"
+        fi
+        
+        echo "# 📊 Finanzauswertung Ehrenamt v${VERSION}" > release_info.md
+        echo "" >> release_info.md
+        echo "**🚀 Release:** ${VERSION}" >> release_info.md
+        echo "**📅 Build-Datum:** $(date '+%d.%m.%Y %H:%M:%S')" >> release_info.md  
+        echo "**🖥️ Plattform:** ${{ matrix.platform }}" >> release_info.md
+        echo "**🐍 Python:** $(python --version)" >> release_info.md
         echo "" >> release_info.md
         echo "## ✨ Features" >> release_info.md
-        echo "- BWA-PDF-Generierung" >> release_info.md
-        echo "- CSV/Excel/ODS Import" >> release_info.md
-        echo "- Quartalsauswertungen" >> release_info.md
-        echo "- Sachkonto-Mapping" >> release_info.md
+        echo "- 📄 BWA-PDF-Generierung mit automatischer Formatierung" >> release_info.md
+        echo "- 📊 CSV/Excel/ODS Import mit intelligenter Spalten-Erkennung" >> release_info.md
+        echo "- 📈 Quartalsauswertungen und Jahresberichte" >> release_info.md
+        echo "- 🏷️ Sachkonto-Mapping und Kategorisierung" >> release_info.md
+        echo "- 💰 Automatische Bilanz-Erstellung" >> release_info.md
+        echo "- 📋 Export in verschiedene Formate" >> release_info.md
+        echo "" >> release_info.md
+        echo "## 📦 Downloads" >> release_info.md
+        echo "Wählen Sie die passende Version für Ihr Betriebssystem:" >> release_info.md
+        echo "- **Windows:** \`Finanzauswertung_Ehrenamt.exe\`" >> release_info.md
+        echo "- **macOS:** \`Finanzauswertung_Ehrenamt.app\`" >> release_info.md
+        echo "- **Linux:** \`Finanzauswertung_Ehrenamt\`" >> release_info.md
+        
+        # Erstelle eine separate Version-Datei für Release
+        echo "${VERSION}" > version.txt
 
     - name: 📦 Prepare Artifacts
       shell: bash
@@ -143,10 +166,45 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: artifacts/*
-        name: "Finanzauswertung Ehrenamt ${{ github.ref_name }}"
-        body_path: artifacts/release_info.md
+        name: "🚀 Finanzauswertung Ehrenamt ${{ github.ref_name }}"
+        body: |
+          # 📊 Finanzauswertung Ehrenamt ${{ github.ref_name }}
+          
+          **🎉 Neue Version verfügbar!**
+          
+          ## 📦 Downloads
+          Wählen Sie die passende Version für Ihr Betriebssystem:
+          
+          ### Windows 🪟
+          - **Finanzauswertung_Ehrenamt.exe** - Direkt ausführbare Windows-Anwendung
+          
+          ### macOS 🍎  
+          - **Finanzauswertung_Ehrenamt.app** - macOS-Anwendungspaket
+          
+          ### Linux 🐧
+          - **Finanzauswertung_Ehrenamt** - Linux-Executable
+          
+          ## ✨ Features dieser Version
+          - 📄 **BWA-PDF-Generierung** mit automatischer Formatierung
+          - 📊 **Multi-Format Import** (CSV, Excel, ODS) mit intelligenter Spalten-Erkennung  
+          - 📈 **Quartalsauswertungen** und detaillierte Jahresberichte
+          - 🏷️ **Sachkonto-Mapping** und automatische Kategorisierung
+          - 💰 **Bilanz-Erstellung** mit Ein-/Ausgaben-Übersicht
+          - 📋 **Flexible Exports** in verschiedene Formate
+          - 🔧 **Cross-Platform** - Läuft auf Windows, macOS und Linux
+          
+          ## 🚀 Installation
+          1. Laden Sie die passende Version für Ihr System herunter
+          2. **Windows:** Doppelklick auf die .exe-Datei
+          3. **macOS:** Doppelklick auf die .app-Datei (evtl. Sicherheitseinstellungen anpassen)
+          4. **Linux:** Datei ausführbar machen: `chmod +x Finanzauswertung_Ehrenamt && ./Finanzauswertung_Ehrenamt`
+          
+          ---
+          **🔖 Tag:** ${{ github.ref_name }}  
+          **💻 CI/CD:** Automatisch erstellt mit GitHub Actions
         draft: false
         prerelease: false
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
