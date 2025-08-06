@@ -10,6 +10,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch:  # Manueller Trigger
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   test:
     name: 🧪 Tests
@@ -204,7 +208,6 @@ jobs:
           **💻 CI/CD:** Automatisch erstellt mit GitHub Actions
         draft: false
         prerelease: false
-        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
