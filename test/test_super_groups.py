@@ -5,14 +5,15 @@ Test-Skript für die Obergruppen-Funktionalität
 """
 
 import sys
+import os
 import json
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
 # Lokale Imports
-sys.path.append('src')
-from utils.bwa_generator import BWAPDFGenerator
-from settings.super_group_mapping import SuperGroupMappingTab
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from src.utils.bwa_generator import BWAPDFGenerator
+from src.settings.super_group_mapping import SuperGroupMappingTab
 
 def test_super_groups():
     """Testet die Obergruppen-Funktionalität"""

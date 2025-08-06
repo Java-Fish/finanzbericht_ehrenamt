@@ -10,8 +10,8 @@ import pandas as pd
 from pathlib import Path
 
 # Lokale Imports
-sys.path.append('src')
-from utils.file_handler import FileHandler
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from src.utils.file_handler import FileHandler
 
 def test_file_handler_errors():
     """Testet Fehlerbehandlung im FileHandler"""

@@ -12,8 +12,8 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
 # Lokale Imports
-sys.path.append('src')
-from settings.general_settings import GeneralSettingsTab
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from src.settings.general_settings import GeneralSettingsTab
 
 def test_settings_export_import():
     """Testet Export und Import von Einstellungen"""

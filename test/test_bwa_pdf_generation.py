@@ -12,10 +12,10 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
-# Lokale Imports
-sys.path.append('src')
-from utils.bwa_generator import BWAPDFGenerator
-from utils.csv_processor import CSVProcessor
+# Lokale Imports - Pfad zum Projekt-Root hinzufügen
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from src.utils.bwa_generator import BWAPDFGenerator
+from src.utils.csv_processor import CSVProcessor
 from test_helpers import TestFileManager
 
 def test_bwa_pdf_generation():

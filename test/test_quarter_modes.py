@@ -5,15 +5,16 @@ Test für die neuen Quartalsauswertungs-Modi und Einstellungen
 """
 
 import sys
+import os
 import json
 import pandas as pd
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
-# Lokale Imports
-sys.path.append('src')
-from utils.csv_processor import CSVProcessor
-from utils.bwa_generator import BWAPDFGenerator
+# Lokale Imports - Pfad zum Projekt-Root hinzufügen
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from src.utils.csv_processor import CSVProcessor
+from src.utils.bwa_generator import BWAPDFGenerator
 
 def test_quarter_modes():
     """Testet die verschiedenen Quartalsauswertungs-Modi"""

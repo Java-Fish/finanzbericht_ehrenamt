@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
 # Lokale Imports
-sys.path.append('src')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from utils.bwa_generator import BWAPDFGenerator
 
 class MockAccountCSVProcessor:

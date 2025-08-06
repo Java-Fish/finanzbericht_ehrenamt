@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 
 # Lokale Imports
-sys.path.append('src')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from utils.csv_processor import CSVProcessor
 
 def test_csv_processor_edge_cases():
