@@ -253,6 +253,18 @@ jobs:
           # Zeige Build-Directory für Debug
           echo "🔍 Build-Directory Debug:" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
           find build/ 2>/dev/null | head -20 >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt" || echo "Build-Directory nicht gefunden" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
+        else
+          echo "✅ Asset erfolgreich gefunden und kopiert für ${{ matrix.platform }}"
+          
+          # Für macOS: Komprimiere .app Bundle für besseren Transport
+          if [ "${{ matrix.platform }}" = "macos" ] && [ -d "artifacts/Finanzauswertung_Ehrenamt.app" ]; then
+            echo "🍎 Komprimiere macOS .app Bundle..."
+            cd artifacts
+            zip -r "Finanzauswertung_Ehrenamt.app.zip" "Finanzauswertung_Ehrenamt.app"
+            rm -rf "Finanzauswertung_Ehrenamt.app"
+            cd ..
+            echo "✅ macOS .app als ZIP bereitgestellt"
+          fi
         fi
         
         # Kopiere Release-Info
@@ -269,11 +281,50 @@ jobs:
         path: artifacts/
         retention-days: 30
 
-    - name: 🏷️ Create Release (Tags only)
-      if: startsWith(github.ref, 'refs/tags/')
+  # Sammle alle Artefakte und erstelle Release
+  release:
+    name: 🚀 Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: all-artifacts
+        
+    - name: 🔧 Prepare Release Assets
+      shell: bash
+      run: |
+        mkdir -p release-assets
+        
+        echo "🔍 Downloaded Artifacts:"
+        find all-artifacts -name "*" -type f
+        
+        # Kopiere alle Assets in einen Release-Ordner
+        for platform_dir in all-artifacts/finanzauswertung-*; do
+          if [ -d "$platform_dir" ]; then
+            echo "📦 Processing $(basename $platform_dir)..."
+            cp -r "$platform_dir"/* release-assets/ 2>/dev/null || true
+          fi
+        done
+        
+        echo "🔍 Final Release Assets:"
+        ls -la release-assets/
+        
+        # Entferne doppelte release_info.md Dateien (nur eine behalten)
+        if [ -f "release-assets/release_info.md" ]; then
+          echo "📋 Release Info verfügbar"
+        fi
+
+    - name: 🏷️ Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: artifacts/*
+        files: release-assets/*
         name: "🚀 Finanzauswertung Ehrenamt ${{ github.ref_name }}"
         body: |
           # 📊 Finanzauswertung Ehrenamt ${{ github.ref_name }}
@@ -287,7 +338,7 @@ jobs:
           - **Finanzauswertung_Ehrenamt.exe** - Direkt ausführbare Windows-Anwendung
           
           ### macOS 🍎  
-          - **Finanzauswertung_Ehrenamt.app** - macOS-Anwendungspaket
+          - **Finanzauswertung_Ehrenamt.app** - macOS-Anwendungspaket (ZIP-komprimiert)
           
           ### Linux 🐧
           - **Finanzauswertung_Ehrenamt** - Linux-Executable
@@ -304,7 +355,7 @@ jobs:
           ## 🚀 Installation
           1. Laden Sie die passende Version für Ihr System herunter
           2. **Windows:** Doppelklick auf die .exe-Datei
-          3. **macOS:** Doppelklick auf die .app-Datei (evtl. Sicherheitseinstellungen anpassen)
+          3. **macOS:** .app-Datei entpacken und ausführen (evtl. Sicherheitseinstellungen anpassen)
           4. **Linux:** Datei ausführbar machen: `chmod +x Finanzauswertung_Ehrenamt && ./Finanzauswertung_Ehrenamt`
           
           ---
