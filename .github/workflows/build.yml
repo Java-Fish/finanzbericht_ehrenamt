@@ -101,7 +101,7 @@ jobs:
 
     - name: 🏗️ Build Application
       run: |
-        python build.py
+        python ci_build.py
 
     - name: 📝 Create Release Info
       shell: bash
