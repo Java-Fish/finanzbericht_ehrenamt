@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finanzauswertung-ehrenamt"
+version = "1.0.0"
+description = "Desktop-Anwendung zur Finanzauswertung für ehrenamtliche Organisationen"
+readme = "README.md"
+license = {text = "CC BY-NC 4.0"}
+authors = [
+    {name = "Finanzauswertung Ehrenamt Team"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Desktop Environment",
+]
+keywords = ["finance", "nonprofit", "desktop", "qt", "pyside6"]
+requires-python = ">=3.13"
+dependencies = [
+    "PySide6>=6.6.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "chardet>=5.2.0",
+]
+
+[project.optional-dependencies]
+ods = ["odfpy>=1.4.0"]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ehrenamt-tools/finanzauswertung"
+Documentation = "https://github.com/ehrenamt-tools/finanzauswertung/wiki"
+Repository = "https://github.com/ehrenamt-tools/finanzauswertung.git"
+"Bug Tracker" = "https://github.com/ehrenamt-tools/finanzauswertung/issues"
+
+[project.scripts]
+finanzauswertung = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"*" = ["resources/*", "resources/**/*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
