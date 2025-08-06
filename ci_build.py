@@ -114,13 +114,16 @@ class CIBuildManager:
             result = subprocess.run(cmd, cwd=self.project_root, capture_output=True, text=True)
             
             if result.returncode == 0:
-                safe_print("✅ Build erfolgreich!")
+                safe_print("✅ PyInstaller Build erfolgreich!")
+                
+                # Post-process für plattform-spezifische Strukturen
+                self.post_process_build()
                 
                 # Zeige Build-Ergebnisse
                 self.show_build_results()
                 return True
             else:
-                safe_print(f"❌ Build fehlgeschlagen!")
+                safe_print(f"❌ PyInstaller Build fehlgeschlagen!")
                 print(f"STDOUT: {result.stdout}")
                 print(f"STDERR: {result.stderr}")
                 return False
@@ -128,6 +131,79 @@ class CIBuildManager:
         except Exception as e:
             safe_print(f"❌ Build-Fehler: {e}")
             return False
+    
+    def post_process_build(self):
+        """Post-Processing für plattform-spezifische Builds"""
+        if self.current_platform == "macos":
+            # Für macOS: Erstelle .app Bundle falls noch nicht vorhanden
+            dist_dir = self.build_dir / self.app_name
+            app_bundle = self.build_dir / f"{self.app_name}.app"
+            
+            if dist_dir.exists() and not app_bundle.exists():
+                safe_print("🍎 Erstelle macOS .app Bundle...")
+                
+                # Erstelle .app Struktur
+                contents_dir = app_bundle / "Contents"
+                macos_dir = contents_dir / "MacOS"
+                resources_dir = contents_dir / "Resources"
+                
+                app_bundle.mkdir(exist_ok=True)
+                contents_dir.mkdir(exist_ok=True)
+                macos_dir.mkdir(exist_ok=True)
+                resources_dir.mkdir(exist_ok=True)
+                
+                # Verschiebe PyInstaller Output in .app
+                for item in dist_dir.iterdir():
+                    shutil.move(str(item), str(macos_dir))
+                
+                # Entferne alten Ordner
+                dist_dir.rmdir()
+                
+                # Info.plist erstellen
+                plist_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>{self.app_name}</string>
+    <key>CFBundleIdentifier</key>
+    <string>org.ehrenamt-tools.finanzauswertung</string>
+    <key>CFBundleName</key>
+    <string>{self.app_name}</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+</dict>
+</plist>'''
+                
+                with open(contents_dir / "Info.plist", 'w') as f:
+                    f.write(plist_content)
+                
+                safe_print("✅ macOS .app Bundle erstellt!")
+        
+        elif self.current_platform == "windows":
+            # Für Windows: Stelle sicher, dass .exe existiert
+            dist_dir = self.build_dir / self.app_name
+            exe_file = dist_dir / f"{self.app_name}.exe"
+            
+            if dist_dir.exists() and exe_file.exists():
+                # Kopiere .exe eine Ebene höher für einfacheren Zugriff
+                shutil.copy2(exe_file, self.build_dir / f"{self.app_name}.exe")
+                safe_print("✅ Windows .exe bereitgestellt!")
+        
+        elif self.current_platform == "linux":
+            # Für Linux: Stelle sicher, dass Executable ausführbar ist
+            dist_dir = self.build_dir / self.app_name
+            exe_file = dist_dir / self.app_name
+            
+            if dist_dir.exists() and exe_file.exists():
+                # Kopiere Executable eine Ebene höher
+                shutil.copy2(exe_file, self.build_dir / self.app_name)
+                os.chmod(self.build_dir / self.app_name, 0o755)
+                safe_print("✅ Linux Executable bereitgestellt!")
     
     def show_build_results(self):
         """Zeigt die Build-Ergebnisse an"""

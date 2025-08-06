@@ -149,14 +149,71 @@ jobs:
       shell: bash
       run: |
         mkdir -p artifacts
-        if [ -d "build" ]; then
-          cp -r build/* artifacts/ 2>/dev/null || true
+        
+        # Bestimme die zu kopierenden Dateien basierend auf der Plattform
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          # Windows: Suche nach .exe und .bat Dateien
+          if [ -f "build/${{ matrix.executable_name }}" ]; then
+            cp "build/${{ matrix.executable_name }}" artifacts/
+            echo "✅ Windows .exe kopiert"
+          elif [ -d "build/${{ matrix.executable_name }}" ]; then
+            # PyInstaller onedir build
+            cp -r "build/${{ matrix.executable_name }}" artifacts/
+            echo "✅ Windows Build-Ordner kopiert"
+          elif [ -f "build/Finanzauswertung_Ehrenamt.bat" ]; then
+            cp "build/Finanzauswertung_Ehrenamt.bat" artifacts/
+            cp "build/Finanzauswertung_Ehrenamt.py" artifacts/ 2>/dev/null || true
+            cp -r build/src artifacts/ 2>/dev/null || true
+            cp -r build/resources artifacts/ 2>/dev/null || true
+            cp build/requirements.txt artifacts/ 2>/dev/null || true
+            cp build/main.py artifacts/ 2>/dev/null || true
+            echo "✅ Windows Fallback-Build kopiert"
+          fi
+          
+        elif [ "${{ matrix.platform }}" = "macos" ]; then
+          # macOS: Suche nach .app Bundle
+          if [ -d "build/${{ matrix.executable_name }}" ]; then
+            cp -r "build/${{ matrix.executable_name }}" artifacts/
+            echo "✅ macOS .app Bundle kopiert"
+          elif [ -d "build/Finanzauswertung_Ehrenamt" ]; then
+            # PyInstaller onedir build
+            mv "build/Finanzauswertung_Ehrenamt" "build/Finanzauswertung_Ehrenamt.app"
+            cp -r "build/Finanzauswertung_Ehrenamt.app" artifacts/
+            echo "✅ macOS Build zu .app umbenannt und kopiert"
+          fi
+          
+        else
+          # Linux: Suche nach Executable oder Ordner
+          if [ -f "build/${{ matrix.executable_name }}" ]; then
+            cp "build/${{ matrix.executable_name }}" artifacts/
+            chmod +x "artifacts/${{ matrix.executable_name }}"
+            echo "✅ Linux Executable kopiert"
+          elif [ -d "build/${{ matrix.executable_name }}" ]; then
+            # PyInstaller onedir build
+            cp -r "build/${{ matrix.executable_name }}" artifacts/
+            echo "✅ Linux Build-Ordner kopiert"
+          elif [ -f "build/Finanzauswertung_Ehrenamt.py" ]; then
+            # Fallback build
+            cp "build/Finanzauswertung_Ehrenamt.py" "artifacts/Finanzauswertung_Ehrenamt"
+            chmod +x "artifacts/Finanzauswertung_Ehrenamt"
+            cp -r build/src artifacts/ 2>/dev/null || true
+            cp -r build/resources artifacts/ 2>/dev/null || true
+            cp build/requirements.txt artifacts/ 2>/dev/null || true
+            cp build/main.py artifacts/ 2>/dev/null || true
+            echo "✅ Linux Fallback-Build kopiert"
+          fi
         fi
+        
+        # Kopiere Release-Info falls vorhanden
         cp release_info.md artifacts/ 2>/dev/null || true
         
-        # Zeige was gebaut wurde
-        echo "🔍 Build-Ergebnisse:"
+        # Zeige was wirklich gebaut wurde
+        echo "🔍 Finale Artefakte:"
         find artifacts -type f -name "*" | head -20
+        
+        # Zeige Build-Directory Inhalt zur Diagnose
+        echo "🔍 Build-Directory Inhalt:"
+        find build -name "*" -type f | head -20 || echo "Build-Directory leer"
 
     - name: ⬆️ Upload Build Artifacts
       uses: actions/upload-artifact@v4
