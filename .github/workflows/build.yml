@@ -20,7 +20,7 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: 🖥️ Setup Virtual Display for GUI Tests
         run: |
@@ -68,7 +68,7 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: 📦 Install Dependencies
         run: |
@@ -92,7 +92,19 @@ jobs:
           sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0
 
       - name: 🏗️ Build
-        run: python ci_build.py
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -e
+          python ci_build.py 2>&1 | tee build_log.txt
+          ls -R build || true
+
+      - name: ❗ Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.platform }}
+          path: build_log.txt
 
       - name: 📝 Create Release Info
         run: |

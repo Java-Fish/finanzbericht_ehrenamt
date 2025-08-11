@@ -72,29 +72,45 @@ def base_pyinstaller_cmd() -> list[str]:
         "--hidden-import", "pandas",
         "--hidden-import", "openpyxl",
         "--hidden-import", "chardet",
+    "--hidden-import", "fitz",      # PyMuPDF
+    "--hidden-import", "PIL",       # Pillow
+    "--hidden-import", "odf",       # odfpy
     ]
     return cmd
 
 
 def build_windows():
     log("🪟 Windows Build")
-    cmd = base_pyinstaller_cmd() + [
-        "--onefile",
-        "--noconsole",
-        "--icon", str(ROOT / "resources" / "icons" / "app_icon.ico"),
-        "main.py",
-    ]
-    return run(cmd, "Windows .exe")
+    icon_path = ROOT / "resources" / "icons" / "app_icon.ico"
+    cmd = base_pyinstaller_cmd() + ["--onefile", "--noconsole"]
+    if icon_path.exists():
+        cmd += ["--icon", str(icon_path)]
+    cmd += ["main.py"]
+    if run(cmd, "Windows .exe (onefile)"):
+        return True
+    log("⚠️ Onefile Build fehlgeschlagen – versuche onedir Fallback")
+    fallback_cmd = base_pyinstaller_cmd() + ["--onedir", "--noconsole"]
+    if icon_path.exists():
+        fallback_cmd += ["--icon", str(icon_path)]
+    fallback_cmd += ["main.py"]
+    return run(fallback_cmd, "Windows onedir Fallback")
 
 
 def build_linux():
     log("🐧 Linux Build")
-    cmd = base_pyinstaller_cmd() + [
-        "--onefile",
-        "--icon", str(ROOT / "resources" / "icons" / "app_icon.png"),
-        "main.py",
-    ]
-    return run(cmd, "Linux Binary")
+    icon_path = ROOT / "resources" / "icons" / "app_icon.png"
+    cmd = base_pyinstaller_cmd() + ["--onefile"]
+    if icon_path.exists():
+        cmd += ["--icon", str(icon_path)]
+    cmd += ["main.py"]
+    if run(cmd, "Linux Binary (onefile)"):
+        return True
+    log("⚠️ Onefile Build fehlgeschlagen – versuche onedir Fallback")
+    fallback_cmd = base_pyinstaller_cmd() + ["--onedir"]
+    if icon_path.exists():
+        fallback_cmd += ["--icon", str(icon_path)]
+    fallback_cmd += ["main.py"]
+    return run(fallback_cmd, "Linux onedir Fallback")
 
 
 def build_macos():
