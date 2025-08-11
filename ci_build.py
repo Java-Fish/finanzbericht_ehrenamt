@@ -30,6 +30,7 @@ ROOT = Path(__file__).parent
 BUILD = ROOT / "build"
 APP_NAME = "Finanzauswertung_Ehrenamt"  # Für Executables (keine Leerzeichen)
 DISPLAY_NAME = "Finanzauswertung Ehrenamt"
+VERSION_FILE = ROOT / "version"
 
 
 def log(msg: str):
@@ -37,9 +38,14 @@ def log(msg: str):
 
 
 def read_version() -> str:
+    # Priorität: ENV > version Datei > pyproject.toml > fallback
     v = os.environ.get("APP_VERSION")
     if v:
-        return v
+        return v.strip()
+    if VERSION_FILE.exists():
+        content = VERSION_FILE.read_text(encoding="utf-8").strip()
+        if content:
+            return content
     pyproject = ROOT / "pyproject.toml"
     if pyproject.exists():
         m = re.search(r"^version\s*=\s*\"([^\"]+)\"", pyproject.read_text(encoding="utf-8"), re.MULTILINE)
@@ -87,13 +93,32 @@ def build_windows():
         cmd += ["--icon", str(icon_path)]
     cmd += ["main.py"]
     if run(cmd, "Windows .exe (onefile)"):
+        # Versioniertes Umbenennen
+        exe = BUILD / f"{APP_NAME}.exe"
+        if exe.exists():
+            versioned = BUILD / f"{APP_NAME}-{read_version()}.exe"
+            try:
+                if versioned.exists():
+                    versioned.unlink()
+                exe.rename(versioned)
+                log(f"🔖 Versioniertes Artefakt: {versioned.name}")
+            except Exception as e:
+                log(f"⚠️ Konnte {exe.name} nicht umbenennen: {e}")
         return True
     log("⚠️ Onefile Build fehlgeschlagen – versuche onedir Fallback")
     fallback_cmd = base_pyinstaller_cmd() + ["--onedir", "--noconsole"]
     if icon_path.exists():
         fallback_cmd += ["--icon", str(icon_path)]
     fallback_cmd += ["main.py"]
-    return run(fallback_cmd, "Windows onedir Fallback")
+    if run(fallback_cmd, "Windows onedir Fallback"):
+        # Kopiere exe aus onedir
+        inner = BUILD / APP_NAME / f"{APP_NAME}.exe"
+        if inner.exists():
+            target = BUILD / f"{APP_NAME}-{read_version()}.exe"
+            shutil.copy2(inner, target)
+            log(f"🔖 Versioniertes Artefakt: {target.name}")
+        return True
+    return False
 
 
 def build_linux():
@@ -104,13 +129,32 @@ def build_linux():
         cmd += ["--icon", str(icon_path)]
     cmd += ["main.py"]
     if run(cmd, "Linux Binary (onefile)"):
+        bin_path = BUILD / APP_NAME
+        if bin_path.exists():
+            versioned = BUILD / f"{APP_NAME}-{read_version()}"
+            try:
+                if versioned.exists():
+                    versioned.unlink()
+                bin_path.rename(versioned)
+                versioned.chmod(0o755)
+                log(f"🔖 Versioniertes Artefakt: {versioned.name}")
+            except Exception as e:
+                log(f"⚠️ Umbenennung fehlgeschlagen: {e}")
         return True
     log("⚠️ Onefile Build fehlgeschlagen – versuche onedir Fallback")
     fallback_cmd = base_pyinstaller_cmd() + ["--onedir"]
     if icon_path.exists():
         fallback_cmd += ["--icon", str(icon_path)]
     fallback_cmd += ["main.py"]
-    return run(fallback_cmd, "Linux onedir Fallback")
+    if run(fallback_cmd, "Linux onedir Fallback"):
+        inner = BUILD / APP_NAME / APP_NAME
+        if inner.exists():
+            target = BUILD / f"{APP_NAME}-{read_version()}"
+            shutil.copy2(inner, target)
+            target.chmod(0o755)
+            log(f"🔖 Versioniertes Artefakt: {target.name}")
+        return True
+    return False
 
 
 def build_macos():
@@ -129,26 +173,70 @@ def build_macos():
     cmd += ["main.py"]
     if not run(cmd, ".app onedir Basis"):
         return False
-    app_dir = BUILD / APP_NAME
-    if not app_dir.exists():
-        log("❌ Erwarteter App-Ordner nicht gefunden")
-        return False
-    archive = BUILD / f"{APP_NAME}.tar.gz"
-    subprocess.run(["tar", "-czf", str(archive), APP_NAME], cwd=BUILD, check=False)
-    pkg_target = BUILD / f"{APP_NAME}.pkg"
+
+    # PyInstaller erzeugt i.d.R. ein .app Bundle: NAME.app
+    app_bundle = BUILD / f"{APP_NAME}.app"
+    alt_dir = BUILD / APP_NAME  # fallback (falls kein .app erstellt wurde)
+
+    if not app_bundle.exists():
+        if alt_dir.exists() and alt_dir.is_dir():
+            # Manuell .app Struktur erstellen
+            log("ℹ️ Erzeuge .app Bundle aus Ordner-Struktur")
+            manual_bundle = BUILD / f"{APP_NAME}.app"
+            contents = manual_bundle / "Contents"
+            macos_dir = contents / "MacOS"
+            resources_dir = contents / "Resources"
+            for d in (manual_bundle, contents, macos_dir, resources_dir):
+                d.mkdir(exist_ok=True)
+            # Kopiere alles hinein
+            for item in alt_dir.iterdir():
+                target = macos_dir / item.name
+                if item.is_dir():
+                    shutil.copytree(item, target, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(item, target)
+            # einfache Info.plist
+            plist = contents / "Info.plist"
+            plist.write_text(f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\"><dict><key>CFBundleExecutable</key><string>{APP_NAME}</string></dict></plist>""", encoding="utf-8")
+            app_bundle = manual_bundle
+        else:
+            log("❌ Weder .app Bundle noch Alternative gefunden")
+            return False
+
+    version = read_version()
+    # Archiv (.tar.gz) des .app Bundles
+    archive = BUILD / f"{APP_NAME}-{version}.tar.gz"
+    subprocess.run(["tar", "-czf", str(archive), app_bundle.name], cwd=BUILD, check=False)
+
+    # .pkg erstellen (Staging unter Applications)
     pkgbuild = shutil.which("pkgbuild")
+    pkg_target = BUILD / f"{APP_NAME}-{version}.pkg"
     if pkgbuild:
+        staging = BUILD / "_pkgroot"
+        apps_dir = staging / "Applications"
+        apps_dir.mkdir(parents=True, exist_ok=True)
+        # Kopiere/Sync .app in Staging
+        dest_app = apps_dir / app_bundle.name
+        if dest_app.exists():
+            shutil.rmtree(dest_app)
+        shutil.copytree(app_bundle, dest_app, dirs_exist_ok=True)
         identifier = "org.ehrenamt.finanzauswertung"
         try:
             subprocess.run([
                 pkgbuild,
-                "--root", str(app_dir),
+                "--root", str(staging),
+                "--install-location", "/",
                 "--identifier", identifier,
                 "--version", read_version(),
                 str(pkg_target)
             ], check=True)
         except subprocess.CalledProcessError as e:
             log(f"⚠️ pkgbuild fehlgeschlagen: {e}")
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging, ignore_errors=True)
     else:
         log("ℹ️ pkgbuild nicht verfügbar – nur .tar.gz erstellt")
     return True

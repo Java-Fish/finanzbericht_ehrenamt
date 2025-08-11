@@ -28,7 +28,6 @@ test_*.csv
 test_*.xlsx
 test_*.ods
 test_*.pdf
-build/
 
 # Distribution / packaging
 .Python
@@ -161,12 +160,16 @@ dmypy.json
 .DS_Store
 .AppleDouble
 .LSOverride
+!/build/*.app
+!/build/*.pkg
+!/build/*.tar.gz
 
 # Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+!/build/*.exe
 
 # Anwendungs-spezifische Dateien
 *.log
