@@ -1,63 +1,54 @@
-name: 🏗️ Build Apps for All Platforms
+name: 🚀 Release Build
 
 on:
   push:
-    branches: [ main, master ]
-    tags: 
-      - 'v*'
+    tags:
       - 'release_*'
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # Manueller Trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   test:
     name: 🧪 Tests
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 📥 Checkout Code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: 🖥️ Setup Virtual Display for GUI Tests
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb
-        export DISPLAY=:99
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        sleep 3
-        
-    - name: 📦 Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        
-    - name: 🔧 Setup Test Environment
-      run: |
-        export QT_QPA_PLATFORM=offscreen
-        export QT_LOGGING_RULES="qt.qpa.xcb.warning=false"
-        export DISPLAY=:99
-        echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
-        echo "QT_LOGGING_RULES=qt.qpa.xcb.warning=false" >> $GITHUB_ENV
-        echo "DISPLAY=:99" >> $GITHUB_ENV
-        
-    - name: 🧪 Run Tests
-      run: |
-        export DISPLAY=:99
-        export QT_QPA_PLATFORM=offscreen
-        python test/ci_test_runner.py
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🖥️ Setup Virtual Display for GUI Tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          sleep 3
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🔧 Setup Test Environment
+        run: |
+          echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+          echo "QT_LOGGING_RULES=qt.qpa.xcb.warning=false" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      - name: 🧪 Run Tests
+        env:
+          DISPLAY: :99
+          QT_QPA_PLATFORM: offscreen
+        run: python test/ci_test_runner.py
 
   build:
-    name: 🏗️ Build Apps
+    name: 🏗️ Build Artifacts
     needs: test
     strategy:
       fail-fast: false
@@ -65,323 +56,94 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            executable_name: "Finanzauswertung_Ehrenamt.exe"
-            icon_ext: "ico"
-            
-          - os: macos-latest  
+          - os: macos-latest
             platform: macos
-            executable_name: "Finanzauswertung_Ehrenamt.app"
-            icon_ext: "icns"
-            
           - os: ubuntu-latest
             platform: linux
-            executable_name: "Finanzauswertung_Ehrenamt"
-            icon_ext: "png"
-
     runs-on: ${{ matrix.os }}
-
     steps:
-    - name: 📥 Checkout Code
-      uses: actions/checkout@v4
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
 
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: 📦 Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
 
-    - name: 🎨 Install Icon Tools (macOS)
-      if: matrix.platform == 'macos'
-      run: |
-        pip install icnsutil
-        # Installiere macOS spezifische Abhängigkeiten
-        pip install py2app || echo "py2app installation failed - will use PyInstaller"
+      - name: 🎨 Icon/Platform Extras (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          pip install icnsutil py2app || true
 
-    - name: 🎨 Install Icon Tools (Windows/Linux) 
-      if: matrix.platform != 'macos'
-      run: |
-        pip install Pillow
+      - name: 🎨 Icon Extras (Win/Linux)
+        if: matrix.platform != 'macos'
+        run: pip install Pillow
 
-    - name: 📦 Install Platform Dependencies
-      shell: bash
-      run: |
-        if [ "${{ matrix.platform }}" = "linux" ]; then
-          # Linux spezifische Abhängigkeiten
+      - name: 📦 Linux System Deps
+        if: matrix.platform == 'linux'
+        run: |
           sudo apt-get update
           sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0
-        fi
 
-    - name: 🏗️ Build Application
-      shell: bash
-      run: |
-        echo "🔍 Debug: Vor dem Build"
-        ls -la
-        python ci_build.py
-        echo "🔍 Debug: Nach dem Build"
-        ls -la build/ || echo "Build-Directory nicht gefunden"
-        find build/ -name "*" || echo "Build-Directory leer"
+      - name: 🏗️ Build
+        run: python ci_build.py
 
-    - name: 📝 Create Release Info
-      shell: bash
-      run: |
-        # Extrahiere Version aus Tag (release_1.0.0 -> 1.0.0 oder v1.0.0 -> 1.0.0)
-        if [[ "${{ github.ref_name }}" =~ ^release_(.+)$ ]]; then
-          VERSION="${BASH_REMATCH[1]}"
-        elif [[ "${{ github.ref_name }}" =~ ^v(.+)$ ]]; then
-          VERSION="${BASH_REMATCH[1]}"
-        else
-          VERSION="1.0.0"
-        fi
-        
-        echo "# 📊 Finanzauswertung Ehrenamt v${VERSION}" > release_info.md
-        echo "" >> release_info.md
-        echo "**🚀 Release:** ${VERSION}" >> release_info.md
-        echo "**📅 Build-Datum:** $(date '+%d.%m.%Y %H:%M:%S')" >> release_info.md  
-        echo "**🖥️ Plattform:** ${{ matrix.platform }}" >> release_info.md
-        echo "**🐍 Python:** $(python --version)" >> release_info.md
-        echo "" >> release_info.md
-        echo "## ✨ Features" >> release_info.md
-        echo "- 📄 BWA-PDF-Generierung mit automatischer Formatierung" >> release_info.md
-        echo "- 📊 CSV/Excel/ODS Import mit intelligenter Spalten-Erkennung" >> release_info.md
-        echo "- 📈 Quartalsauswertungen und Jahresberichte" >> release_info.md
-        echo "- 🏷️ Sachkonto-Mapping und Kategorisierung" >> release_info.md
-        echo "- 💰 Automatische Bilanz-Erstellung" >> release_info.md
-        echo "- 📋 Export in verschiedene Formate" >> release_info.md
-        echo "" >> release_info.md
-        echo "## 📦 Downloads" >> release_info.md
-        echo "Wählen Sie die passende Version für Ihr Betriebssystem:" >> release_info.md
-        echo "- **Windows:** \`Finanzauswertung_Ehrenamt.exe\`" >> release_info.md
-        echo "- **macOS:** \`Finanzauswertung_Ehrenamt.app\`" >> release_info.md
-        echo "- **Linux:** \`Finanzauswertung_Ehrenamt\`" >> release_info.md
-        
-        # Erstelle eine separate Version-Datei für Release
-        echo "${VERSION}" > version.txt
+      - name: 📝 Create Release Info
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^release_(.+)$ ]]; then VERSION="${BASH_REMATCH[1]}"; else VERSION="0.0.0"; fi
+          echo "# Finanzauswertung Ehrenamt ${VERSION}" > release_info.md
+          echo "Plattform: ${{ matrix.platform }}" >> release_info.md
+          echo "Build: $(date '+%Y-%m-%d %H:%M:%S')" >> release_info.md
+          echo "Version: ${VERSION}" > version.txt
 
-    - name: 📦 Prepare Artifacts
-      shell: bash
-      run: |
-        mkdir -p artifacts
-        
-        echo "🔍 Debug: Build-Verzeichnis Inhalt:"
-        find build/ -type f 2>/dev/null || echo "Build-Verzeichnis nicht gefunden"
-        
-        # Bestimme die zu kopierenden Dateien basierend auf der Plattform
-        FOUND_ASSET=false
-        
-        if [ "${{ matrix.platform }}" = "windows" ]; then
-          echo "🪟 Windows Build - suche nach .exe..."
-          
-          # Suche nach Windows .exe (PyInstaller)
-          if [ -f "build/Finanzauswertung_Ehrenamt.exe" ]; then
-            cp "build/Finanzauswertung_Ehrenamt.exe" artifacts/
-            echo "✅ Windows .exe gefunden und kopiert"
-            FOUND_ASSET=true
-          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" ]; then
-            # PyInstaller onedir build
-            cp "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt.exe" "artifacts/Finanzauswertung_Ehrenamt.exe"
-            echo "✅ Windows .exe aus PyInstaller-Ordner kopiert"
-            FOUND_ASSET=true
-          elif [ -f "build/Finanzauswertung_Ehrenamt.bat" ]; then
-            # Fallback build
-            cp "build/Finanzauswertung_Ehrenamt.bat" artifacts/
-            echo "✅ Windows Fallback .bat kopiert"
-            FOUND_ASSET=true
+      - name: 📦 Collect Artifacts
+        run: |
+          mkdir -p artifacts
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            cp build/Finanzauswertung_Ehrenamt.exe artifacts/ 2>/dev/null || true
+          elif [ "${{ matrix.platform }}" = "macos" ]; then
+            cp build/Finanzauswertung_Ehrenamt.pkg artifacts/ 2>/dev/null || true
+            cp build/Finanzauswertung_Ehrenamt.tar.gz artifacts/ 2>/dev/null || true
+          else
+            cp build/Finanzauswertung_Ehrenamt artifacts/ 2>/dev/null || true
           fi
-          
-        elif [ "${{ matrix.platform }}" = "macos" ]; then
-          echo "🍎 macOS Build - suche nach .app..."
-          
-          # Suche nach macOS .app Bundle
-          if [ -d "build/Finanzauswertung_Ehrenamt.app" ]; then
-            cp -r "build/Finanzauswertung_Ehrenamt.app" artifacts/
-            echo "✅ macOS .app Bundle gefunden und kopiert"
-            FOUND_ASSET=true
-          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
-            # PyInstaller onedir - erstelle .app Bundle
-            mkdir -p "artifacts/Finanzauswertung_Ehrenamt.app/Contents/MacOS"
-            cp -r "build/Finanzauswertung_Ehrenamt/"* "artifacts/Finanzauswertung_Ehrenamt.app/Contents/MacOS/"
-            # Info.plist erstellen
-            cat > "artifacts/Finanzauswertung_Ehrenamt.app/Contents/Info.plist" << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>Finanzauswertung_Ehrenamt</string>
-            <key>CFBundleIdentifier</key>
-            <string>org.ehrenamt-tools.finanzauswertung</string>
-            <key>CFBundleName</key>
-            <string>Finanzauswertung_Ehrenamt</string>
-        </dict>
-        </plist>
-        EOF
-            echo "✅ macOS .app Bundle aus PyInstaller-Ordner erstellt"
-            FOUND_ASSET=true
-          fi
-          
-        else
-          echo "🐧 Linux Build - suche nach Executable..."
-          
-          # Suche nach Linux Executable
-          if [ -f "build/Finanzauswertung_Ehrenamt" ]; then
-            cp "build/Finanzauswertung_Ehrenamt" artifacts/
-            chmod +x "artifacts/Finanzauswertung_Ehrenamt"
-            echo "✅ Linux Executable gefunden und kopiert"
-            FOUND_ASSET=true
-          elif [ -d "build/Finanzauswertung_Ehrenamt" ] && [ -f "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" ]; then
-            # PyInstaller onedir
-            cp "build/Finanzauswertung_Ehrenamt/Finanzauswertung_Ehrenamt" "artifacts/Finanzauswertung_Ehrenamt"
-            chmod +x "artifacts/Finanzauswertung_Ehrenamt"
-            echo "✅ Linux Executable aus PyInstaller-Ordner kopiert"
-            FOUND_ASSET=true
-          fi
-        fi
-        
-        # Falls kein Asset gefunden wurde, verwende Fallback
-        if [ "$FOUND_ASSET" = "false" ]; then
-          echo "❌ Kein plattform-spezifisches Asset gefunden - BUILD FEHLGESCHLAGEN"
-          
-          # Erstelle eine Fehlermeldung-Datei
-          echo "❌ Build fehlgeschlagen für ${{ matrix.platform }}" > "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
-          echo "Siehe GitHub Actions Logs für Details" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
-          
-          # Zeige Build-Directory für Debug
-          echo "🔍 Build-Directory Debug:" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
-          find build/ 2>/dev/null | head -20 >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt" || echo "Build-Directory nicht gefunden" >> "artifacts/BUILD_FAILED_${{ matrix.platform }}.txt"
-        else
-          echo "✅ Asset erfolgreich gefunden und kopiert für ${{ matrix.platform }}"
-          
-          # Für macOS: Komprimiere .app Bundle für besseren Transport
-          if [ "${{ matrix.platform }}" = "macos" ] && [ -d "artifacts/Finanzauswertung_Ehrenamt.app" ]; then
-            echo "🍎 Komprimiere macOS .app Bundle..."
-            cd artifacts
-            zip -r "Finanzauswertung_Ehrenamt.app.zip" "Finanzauswertung_Ehrenamt.app"
-            rm -rf "Finanzauswertung_Ehrenamt.app"
-            cd ..
-            echo "✅ macOS .app als ZIP bereitgestellt"
-          fi
-        fi
-        
-        # Kopiere Release-Info
-        cp release_info.md artifacts/ 2>/dev/null || true
-        
-        # Zeige finale Artefakte
-        echo "🔍 Finale Artefakte:"
-        ls -la artifacts/
+          cp release_info.md artifacts/ 2>/dev/null || true
+          ls -la artifacts
 
-    - name: ⬆️ Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: finanzauswertung-${{ matrix.platform }}
-        path: artifacts/
-        retention-days: 30
+      - name: ⬆️ Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finanzauswertung-${{ matrix.platform }}
+          path: artifacts
+          retention-days: 30
 
-  # Sammle alle Artefakte und erstelle Release
   release:
-    name: 🚀 Create Release
+    name: 📦 GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    
+    if: startsWith(github.ref, 'refs/tags/release_')
     steps:
-    - name: 📥 Checkout Code
-      uses: actions/checkout@v4
-      
-    - name: 📦 Download All Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: all-artifacts
-        
-    - name: 🔧 Prepare Release Assets
-      shell: bash
-      run: |
-        mkdir -p release-assets
-        
-        echo "🔍 Downloaded Artifacts:"
-        find all-artifacts -name "*" -type f
-        
-        # Kopiere alle Assets in einen Release-Ordner
-        for platform_dir in all-artifacts/finanzauswertung-*; do
-          if [ -d "$platform_dir" ]; then
-            echo "📦 Processing $(basename $platform_dir)..."
-            cp -r "$platform_dir"/* release-assets/ 2>/dev/null || true
-          fi
-        done
-        
-        echo "🔍 Final Release Assets:"
-        ls -la release-assets/
-        
-        # Entferne doppelte release_info.md Dateien (nur eine behalten)
-        if [ -f "release-assets/release_info.md" ]; then
-          echo "📋 Release Info verfügbar"
-        fi
-
-    - name: 🏷️ Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: release-assets/*
-        name: "🚀 Finanzauswertung Ehrenamt ${{ github.ref_name }}"
-        body: |
-          # 📊 Finanzauswertung Ehrenamt ${{ github.ref_name }}
-          
-          **🎉 Neue Version verfügbar!**
-          
-          ## 📦 Downloads
-          Wählen Sie die passende Version für Ihr Betriebssystem:
-          
-          ### Windows 🪟
-          - **Finanzauswertung_Ehrenamt.exe** - Direkt ausführbare Windows-Anwendung
-          
-          ### macOS 🍎  
-          - **Finanzauswertung_Ehrenamt.app** - macOS-Anwendungspaket (ZIP-komprimiert)
-          
-          ### Linux 🐧
-          - **Finanzauswertung_Ehrenamt** - Linux-Executable
-          
-          ## ✨ Features dieser Version
-          - 📄 **BWA-PDF-Generierung** mit automatischer Formatierung
-          - 📊 **Multi-Format Import** (CSV, Excel, ODS) mit intelligenter Spalten-Erkennung  
-          - 📈 **Quartalsauswertungen** und detaillierte Jahresberichte
-          - 🏷️ **Sachkonto-Mapping** und automatische Kategorisierung
-          - 💰 **Bilanz-Erstellung** mit Ein-/Ausgaben-Übersicht
-          - 📋 **Flexible Exports** in verschiedene Formate
-          - 🔧 **Cross-Platform** - Läuft auf Windows, macOS und Linux
-          
-          ## 🚀 Installation
-          1. Laden Sie die passende Version für Ihr System herunter
-          2. **Windows:** Doppelklick auf die .exe-Datei
-          3. **macOS:** .app-Datei entpacken und ausführen (evtl. Sicherheitseinstellungen anpassen)
-          4. **Linux:** Datei ausführbar machen: `chmod +x Finanzauswertung_Ehrenamt && ./Finanzauswertung_Ehrenamt`
-          
-          ---
-          **🔖 Tag:** ${{ github.ref_name }}  
-          **💻 CI/CD:** Automatisch erstellt mit GitHub Actions
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Benachrichtigung bei erfolgreichem Build
-  notify:
-    name: 📢 Build Notification
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-    - name: ✅ Success Notification
-      if: needs.build.result == 'success'
-      run: |
-        echo "🎉 Alle Builds erfolgreich!"
-        echo "📱 Apps für Windows, macOS und Linux erstellt"
-        
-    - name: ❌ Failure Notification  
-      if: needs.test.result == 'failure' || needs.build.result == 'failure'
-      run: |
-        echo "💥 Build fehlgeschlagen!"
-        echo "🔍 Prüfe die Logs für Details"
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: ⬇️ Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+      - name: 🔍 List assets
+        run: find all-artifacts -type f -maxdepth 4 || true
+      - name: 🏷️ Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: all-artifacts/**
+          name: "Finanzauswertung Ehrenamt ${{ github.ref_name }}"
+          body: "Automatischer Release-Build für ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
