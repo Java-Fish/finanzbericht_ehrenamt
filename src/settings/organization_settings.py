@@ -221,6 +221,9 @@ class OrganizationSettingsTab(QWidget):
             opening_balance = 0.0
         self.settings.setValue("opening_balance", opening_balance)
         
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""
         self.name_edit.clear()

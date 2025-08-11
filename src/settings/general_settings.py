@@ -357,6 +357,9 @@ class GeneralSettingsTab(QWidget):
         # Überschriftenfarbe speichern
         self.settings.setValue("header_color", self.current_color.name())
         
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""
         self.language_combo.setCurrentText("Deutsch")

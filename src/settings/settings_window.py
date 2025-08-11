@@ -121,6 +121,9 @@ class SettingsWindow(QMainWindow):
         # Obergruppen-Mappings speichern
         self.super_group_mapping_tab.save_settings()
         
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
         # Bestätigung (könnte später durch eine Statusleiste ersetzt werden)
         print("Einstellungen gespeichert")
         
@@ -159,6 +162,13 @@ class SettingsWindow(QMainWindow):
         
     def closeEvent(self, event):
         """Wird beim Schließen des Fensters aufgerufen"""
+        # Alle Einstellungen automatisch speichern
+        self.save_settings()
+        
         # Fenstergeometrie speichern
         self.settings.setValue("settings_window/geometry", self.saveGeometry())
+        
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
         event.accept()

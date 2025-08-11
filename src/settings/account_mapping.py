@@ -342,6 +342,9 @@ class AccountMappingTab(QWidget):
         names_json = json.dumps(self.account_names)
         self.settings.setValue("account_names", names_json)
         
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""
         self.account_mappings = {}

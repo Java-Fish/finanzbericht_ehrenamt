@@ -105,6 +105,9 @@ class MappingSettingsTab(QWidget):
         for key, widget in self.mapping_widgets.items():
             value = widget.text().strip()
             self.settings.setValue(f"mapping/{key}", value)
+        
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
             
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""

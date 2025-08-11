@@ -252,6 +252,9 @@ class SuperGroupMappingTab(QWidget):
         mappings_json = json.dumps(self.super_group_mappings)
         self.settings.setValue("super_group_mappings", mappings_json)
         
+        # Sicherstellen, dass alle Änderungen persistent gespeichert werden
+        self.settings.sync()
+        
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""
         self.super_group_mappings = {}
