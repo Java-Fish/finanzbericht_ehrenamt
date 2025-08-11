@@ -6,12 +6,14 @@ BWA-PDF-Generator
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.lib.colors import black, blue, red, gray
+from reportlab.lib.colors import black, blue, red, gray, green
 from reportlab.lib import colors
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, 
                                TableStyle, PageBreak, Image)
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
+from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.graphics import renderPDF
 from PySide6.QtCore import QSettings
 from datetime import datetime, date
 from typing import Dict, List, Optional
@@ -134,7 +136,7 @@ class BWAPDFGenerator:
             settings = QSettings()
             generate_quarterly = settings.value("generate_quarterly_reports", True, type=bool)
             generate_accounts = settings.value("generate_account_reports", True, type=bool)
-            generate_chart = settings.value("generate_chart_report", False, type=bool)
+            generate_chart = settings.value("generate_chart_report", True, type=bool)
             quarter_mode = settings.value("quarter_mode", "cumulative")
             
             # PDF-Dokument erstellen
@@ -408,17 +410,9 @@ class BWAPDFGenerator:
         if table:
             elements.append(table)
             
-        # Prüfung, ob Kontostandsentwicklung auf separate Seite gehört
-        table_height = len(summary) * 0.8*cm if summary else 0  # Geschätzte Höhe der BWA-Tabelle
-        
-        if table_height > (A4[1] * 0.5):  # Wenn BWA-Tabelle mehr als 50% der Seite einnimmt
-            # Seitenumbruch vor Kontostandsentwicklung
-            elements.append(PageBreak())
-            balance_title = Paragraph(f"<b>Kontostandsentwicklung Q{quarter}</b>", self.group_style)
-        else:
-            # Kontostandsentwicklung auf derselben Seite
-            elements.append(Spacer(1, 1*cm))
-            balance_title = Paragraph("<b>Kontostandsentwicklung</b>", self.group_style)
+        # Kontostandsentwicklung immer auf eigene Seite
+        elements.append(PageBreak())
+        balance_title = Paragraph(f"<b>Kontostandsentwicklung Q{quarter}</b>", self.group_style)
             
         elements.append(balance_title)
         elements.append(Spacer(1, 0.5*cm))
@@ -440,6 +434,18 @@ class BWAPDFGenerator:
         
         new_balance_para = Paragraph(f"<b>Kontostand nach Q{quarter}: {self._format_amount(quarter_balance)}</b>", self.normal_style)
         elements.append(new_balance_para)
+        
+        # Balkendiagramm hinzufügen (falls aktiviert)
+        chart_enabled = self.settings.value("generate_chart_report", True, type=bool)
+        if chart_enabled:
+            elements.append(Spacer(1, 1*cm))
+            chart_title = Paragraph("<b>Obergruppen-Übersicht</b>", self.group_style)
+            elements.append(chart_title)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            chart = self._create_supergroup_bar_chart(summary, f"Q{quarter}")
+            if chart is not None:
+                elements.append(chart)
             
         return elements
         
@@ -467,17 +473,9 @@ class BWAPDFGenerator:
         if table:
             elements.append(table)
             
-        # Prüfung, ob Kontostandsentwicklung auf separate Seite gehört
-        table_height = len(summary) * 0.8*cm if summary else 0  # Geschätzte Höhe der BWA-Tabelle
-        
-        if table_height > (A4[1] * 0.5):  # Wenn BWA-Tabelle mehr als 50% der Seite einnimmt
-            # Seitenumbruch vor Kontostandsentwicklung
-            elements.append(PageBreak())
-            balance_title = Paragraph(f"<b>Kontostandsentwicklung Jahr</b>", self.group_style)
-        else:
-            # Kontostandsentwicklung auf derselben Seite
-            elements.append(Spacer(1, 1*cm))
-            balance_title = Paragraph("<b>Kontostandsentwicklung Jahr</b>", self.group_style)
+        # Kontostandsentwicklung immer auf eigene Seite
+        elements.append(PageBreak())
+        balance_title = Paragraph(f"<b>Kontostandsentwicklung Jahr</b>", self.group_style)
             
         elements.append(balance_title)
         elements.append(Spacer(1, 0.5*cm))
@@ -495,6 +493,18 @@ class BWAPDFGenerator:
         
         new_balance_para = Paragraph(f"<b>Kontostand 31.12.: {self._format_amount(new_balance)}</b>", self.normal_style)
         elements.append(new_balance_para)
+        
+        # Balkendiagramm hinzufügen (falls aktiviert)
+        chart_enabled = self.settings.value("generate_chart_report", True, type=bool)
+        if chart_enabled:
+            elements.append(Spacer(1, 1*cm))
+            chart_title = Paragraph("<b>Obergruppen-Übersicht</b>", self.group_style)
+            elements.append(chart_title)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            chart = self._create_supergroup_bar_chart(summary, "Jahr")
+            if chart is not None:
+                elements.append(chart)
             
         return elements
         
@@ -904,4 +914,102 @@ class BWAPDFGenerator:
             
         except Exception as e:
             print(f"Fehler beim Erstellen des Diagramms: {e}")
+            return None
+    
+    def _create_supergroup_bar_chart(self, summary: Dict[str, float], period: str) -> Optional[Drawing]:
+        """Erstellt ein horizontales Balkendiagramm der Obergruppen"""
+        try:
+            # Obergruppen-Mappings laden
+            super_group_mappings = self._load_super_group_mappings()
+            
+            # Daten nach Obergruppen organisieren
+            super_groups = {}  # {super_group: total_amount}
+            
+            for bwa_group, amount in summary.items():
+                super_group = super_group_mappings.get(bwa_group, "Nicht zugeordnet")
+                
+                if super_group not in super_groups:
+                    super_groups[super_group] = 0.0
+                super_groups[super_group] += amount
+            
+            # Wenn keine Daten vorhanden sind
+            if not super_groups:
+                return None
+            
+            # Sortiere nach Betrag (größte positive zuerst, dann negative)
+            sorted_groups = sorted(super_groups.items(), 
+                                 key=lambda x: x[1], reverse=True)
+            
+            # Diagramm-Dimensionen
+            chart_width = 16 * cm
+            chart_height = max(4 * cm, len(sorted_groups) * 0.8 * cm)
+            drawing = Drawing(chart_width, chart_height)
+            
+            # Maximalen Betrag finden für Skalierung
+            max_amount = max(abs(amount) for _, amount in sorted_groups) if sorted_groups else 1
+            if max_amount == 0:
+                max_amount = 1
+            
+            # Zeichenbereich definieren
+            margin = 1 * cm
+            bar_area_width = chart_width - 2 * margin
+            bar_height = 0.6 * cm
+            bar_spacing = 0.8 * cm
+            
+            # Mittellinie (0€-Linie)
+            center_x = margin + bar_area_width / 2
+            
+            # Balken zeichnen
+            y_pos = chart_height - margin - bar_height
+            
+            for super_group, amount in sorted_groups:
+                # Balkenbreite berechnen (proportional zum Betrag)
+                bar_width = (abs(amount) / max_amount) * (bar_area_width / 2)
+                
+                # Farbe bestimmen
+                if amount >= 0:
+                    bar_color = green
+                    bar_x = center_x  # Positive Balken nach rechts
+                else:
+                    bar_color = red
+                    bar_x = center_x - bar_width  # Negative Balken nach links
+                
+                # Balken zeichnen
+                rect = Rect(bar_x, y_pos, bar_width, bar_height,
+                           fillColor=bar_color, strokeColor=bar_color)
+                drawing.add(rect)
+                
+                # Label links vom Balken (Gruppename)
+                label_x = margin - 0.2 * cm
+                label_text = f"{super_group}"
+                if len(label_text) > 20:  # Kürzen wenn zu lang
+                    label_text = label_text[:17] + "..."
+                
+                label = String(label_x, y_pos + bar_height/2 - 0.1*cm, 
+                              label_text, fontSize=9, textAnchor='end')
+                drawing.add(label)
+                
+                # Wert rechts vom Balken
+                value_x = center_x + bar_area_width / 2 + 0.2 * cm
+                value_text = self._format_amount(amount)
+                value = String(value_x, y_pos + bar_height/2 - 0.1*cm,
+                              value_text, fontSize=9, textAnchor='start')
+                drawing.add(value)
+                
+                y_pos -= bar_spacing
+            
+            # Mittellinie (0€-Linie) zeichnen
+            zero_line = Line(center_x, margin, center_x, chart_height - margin,
+                           strokeColor=black, strokeWidth=1)
+            drawing.add(zero_line)
+            
+            # 0€ Label
+            zero_label = String(center_x, margin - 0.3*cm, "0€", 
+                              fontSize=10, textAnchor='middle')
+            drawing.add(zero_label)
+            
+            return drawing
+            
+        except Exception as e:
+            print(f"Fehler beim Erstellen des Balkendiagramms: {e}")
             return None
