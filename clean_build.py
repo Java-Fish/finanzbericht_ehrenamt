@@ -30,7 +30,7 @@ def read_version() -> str:
 
 def run_tests() -> bool:
     print('🧪 Starte Tests...')
-    test_runner = ROOT / 'test' / 'ci_test_runner.py'
+    test_runner = ROOT / 'test' / 'run_all_tests.py'
     if not test_runner.exists():
         print('⚠️ Test Runner nicht gefunden, überspringe Tests.')
         return True

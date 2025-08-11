@@ -33,7 +33,10 @@ class BWAPDFGenerator:
         self._create_custom_styles()
         
     def _create_custom_styles(self):
-        """Erstellt benutzerdefinierte Styles"""
+        """Erstellt benutzerdefinierte Styles mit aktueller Farbe"""
+        # Aktuelle Überschriftenfarbe laden
+        header_color = self._get_header_color()
+        
         # Titel-Style
         self.title_style = ParagraphStyle(
             'CustomTitle',
@@ -41,7 +44,7 @@ class BWAPDFGenerator:
             fontSize=16,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=blue
+            textColor=header_color
         )
         
         # Untertitel-Style
@@ -60,7 +63,7 @@ class BWAPDFGenerator:
             fontSize=12,
             spaceAfter=10,
             spaceBefore=15,
-            textColor=blue,
+            textColor=header_color,
             leftIndent=10
         )
         
@@ -72,16 +75,35 @@ class BWAPDFGenerator:
             alignment=TA_LEFT
         )
         
+    def _get_header_color(self):
+        """Gibt die eingestellte Überschriftenfarbe zurück"""
+        header_color_hex = self.settings.value("header_color", "#0000FF")  # Standard: Blau
+        try:
+            # HEX zu RGB konvertieren
+            if header_color_hex.startswith('#'):
+                hex_color = header_color_hex[1:]
+            else:
+                hex_color = header_color_hex
+                
+            r = int(hex_color[0:2], 16) / 255.0
+            g = int(hex_color[2:4], 16) / 255.0
+            b = int(hex_color[4:6], 16) / 255.0
+            return colors.Color(r, g, b)
+        except (ValueError, IndexError):
+            # Fallback auf Standardblau bei ungültiger Farbe
+            return blue
+        
     def _get_opening_balance(self) -> float:
         """Holt den Anfangskontostand aus den Einstellungen"""
         return self.settings.value("opening_balance", 0.0, type=float)
         
     def _calculate_total_amount(self, csv_processor) -> float:
         """Berechnet die Gesamtsumme aller Buchungen"""
-        year_data = csv_processor.get_data_by_quarter(4)  # Kumulativ bis Q4 = ganzes Jahr
+        year_data = csv_processor.get_year_data()  # Alle Daten des Jahres
         if year_data.empty:
             return 0.0
-        return year_data['Betrag'].sum()
+        # Einheitlich Betrag_Clean verwenden
+        return year_data['Betrag_Clean'].sum() if 'Betrag_Clean' in year_data.columns else 0.0
         
     def _calculate_new_balance(self, csv_processor) -> float:
         """Berechnet den neuen Kontostand (Anfang + Summe aller Buchungen)"""
@@ -105,6 +127,9 @@ class BWAPDFGenerator:
     def generate_bwa_pdf(self, output_path: str, csv_processor, account_mappings: Dict[str, str]) -> bool:
         """Generiert das komplette BWA-PDF basierend auf Einstellungen"""
         try:
+            # Styles vor jeder PDF-Generierung neu erstellen um aktuelle Farben zu berücksichtigen
+            self._create_custom_styles()
+            
             # Einstellungen laden
             settings = QSettings()
             generate_quarterly = settings.value("generate_quarterly_reports", True, type=bool)
@@ -168,85 +193,168 @@ class BWAPDFGenerator:
             return {}
             
     def _create_cover_page(self, csv_processor) -> List:
-        """Erstellt das Deckblatt"""
+        """Erstellt das Deckblatt mit Organisationsinformationen, Logo und Kontodaten"""
         elements = []
         
         # Titel
         title = Paragraph("Betriebswirtschaftliche Auswertung", self.title_style)
         elements.append(title)
-        elements.append(Spacer(1, 1*cm))
+        elements.append(Spacer(1, 0.5*cm))
         
         # Jahr (aktuelles Jahr)
         year = datetime.now().year
         year_para = Paragraph(f"Geschäftsjahr {year}", self.subtitle_style)
         elements.append(year_para)
-        elements.append(Spacer(1, 2*cm))
+        elements.append(Spacer(1, 1.5*cm))
         
-        # Organisationsdaten
+        # Organisationsdaten (oben im Dokument)
         org_name = self.settings.value("organization/name", "")
-        org_address = self.settings.value("organization/address", "")
+        org_street = self.settings.value("organization/street", "")
+        org_zip = self.settings.value("organization/zip", "")
+        org_city = self.settings.value("organization/city", "")
         org_phone = self.settings.value("organization/phone", "")
         org_email = self.settings.value("organization/email", "")
-        org_website = self.settings.value("organization/website", "")
+        org_info = self.settings.value("organization/info", "")
         
+        # Organisationsname (fett und größer)
         if org_name:
-            elements.append(Paragraph(f"<b>{org_name}</b>", self.normal_style))
-            elements.append(Spacer(1, 0.5*cm))
+            org_name_style = ParagraphStyle(
+                'OrgName',
+                parent=self.normal_style,
+                fontSize=14,
+                alignment=TA_CENTER,
+                textColor=self._get_header_color(),
+                spaceBefore=5,
+                spaceAfter=5
+            )
+            elements.append(Paragraph(f"<b>{org_name}</b>", org_name_style))
             
-        if org_address:
-            # Adresse kann mehrzeilig sein
-            address_lines = org_address.replace('\n', '<br/>')
-            elements.append(Paragraph(address_lines, self.normal_style))
-            elements.append(Spacer(1, 0.3*cm))
-            
+        # Adresse
+        if org_street or org_zip or org_city:
+            address_parts = []
+            if org_street:
+                address_parts.append(org_street)
+            if org_zip and org_city:
+                address_parts.append(f"{org_zip} {org_city}")
+            elif org_city:
+                address_parts.append(org_city)
+                
+            if address_parts:
+                address_text = "<br/>".join(address_parts)
+                address_style = ParagraphStyle(
+                    'Address',
+                    parent=self.normal_style,
+                    alignment=TA_CENTER,
+                    spaceBefore=3,
+                    spaceAfter=3
+                )
+                elements.append(Paragraph(address_text, address_style))
+                
+        # Kontaktdaten
+        contact_parts = []
         if org_phone:
-            elements.append(Paragraph(f"Telefon: {org_phone}", self.normal_style))
-            
+            contact_parts.append(f"Tel: {org_phone}")
         if org_email:
-            elements.append(Paragraph(f"E-Mail: {org_email}", self.normal_style))
+            contact_parts.append(f"E-Mail: {org_email}")
             
-        if org_website:
-            elements.append(Paragraph(f"Website: {org_website}", self.normal_style))
+        if contact_parts:
+            contact_text = " | ".join(contact_parts)
+            contact_style = ParagraphStyle(
+                'Contact',
+                parent=self.normal_style,
+                alignment=TA_CENTER,
+                fontSize=9,
+                spaceBefore=3,
+                spaceAfter=10
+            )
+            elements.append(Paragraph(contact_text, contact_style))
             
-        elements.append(Spacer(1, 2*cm))
+        # Zusätzliche Organisationsinfos
+        if org_info:
+            info_style = ParagraphStyle(
+                'OrgInfo',
+                parent=self.normal_style,
+                alignment=TA_CENTER,
+                fontSize=9,
+                textColor=gray,
+                spaceBefore=5,
+                spaceAfter=15
+            )
+            elements.append(Paragraph(org_info, info_style))
         
-        # Logo (falls vorhanden)
+        elements.append(Spacer(1, 1*cm))
+        
+        # Logo mittig unter den Organisationsinformationen
         logo_path = self.settings.value("organization/logo_path", "")
         if logo_path and os.path.exists(logo_path):
             try:
-                logo = Image(logo_path, width=5*cm, height=3*cm, kind='proportional')
+                # Logo zentriert mit angemessener Größe
+                logo = Image(logo_path, width=6*cm, height=4*cm, kind='proportional')
+                logo.hAlign = 'CENTER'
                 elements.append(logo)
-                elements.append(Spacer(1, 1*cm))
-            except:
-                pass  # Logo konnte nicht geladen werden
+                elements.append(Spacer(1, 1.5*cm))
+            except Exception as e:
+                # Fallback falls Logo nicht geladen werden kann
+                elements.append(Spacer(1, 0.5*cm))
+        else:
+            elements.append(Spacer(1, 0.5*cm))
                 
-        # Kontostandsinformationen
-        elements.append(Spacer(1, 1*cm))
-        
-        balance_title = Paragraph("<b>Kontostandsübersicht</b>", self.group_style)
+        # Kontostandsinformationen unter dem Logo
+        balance_title_style = ParagraphStyle(
+            'BalanceTitle',
+            parent=self.group_style,
+            alignment=TA_CENTER,
+            fontSize=12,
+            textColor=self._get_header_color(),
+            spaceBefore=10,
+            spaceAfter=10
+        )
+        balance_title = Paragraph("<b>Kontostandsübersicht</b>", balance_title_style)
         elements.append(balance_title)
-        elements.append(Spacer(1, 0.5*cm))
         
         # Anfangskontostand
         opening_balance = self._get_opening_balance()
-        opening_para = Paragraph(f"Kontostand zum 01.01.: {self._format_amount(opening_balance)}", self.normal_style)
+        opening_style = ParagraphStyle(
+            'BalanceData',
+            parent=self.normal_style,
+            alignment=TA_CENTER,
+            spaceBefore=3,
+            spaceAfter=3
+        )
+        opening_para = Paragraph(f"Kontostand zum 01.01.: {self._format_amount(opening_balance)}", opening_style)
         elements.append(opening_para)
         
         # Summe aller Buchungen
         total_amount = self._calculate_total_amount(csv_processor)
-        total_para = Paragraph(f"Summe aller Buchungen: {self._format_amount(total_amount)}", self.normal_style)
+        total_para = Paragraph(f"Summe aller Buchungen: {self._format_amount(total_amount)}", opening_style)
         elements.append(total_para)
         
-        # Neuer Kontostand
+        # Neuer Kontostand (hervorgehoben)
         new_balance = self._calculate_new_balance(csv_processor)
-        new_balance_para = Paragraph(f"<b>Aktueller Kontostand: {self._format_amount(new_balance)}</b>", self.normal_style)
+        final_balance_style = ParagraphStyle(
+            'FinalBalance',
+            parent=self.normal_style,
+            alignment=TA_CENTER,
+            fontSize=11,
+            textColor=self._get_header_color(),
+            spaceBefore=5,
+            spaceAfter=10
+        )
+        new_balance_para = Paragraph(f"<b>Aktueller Kontostand: {self._format_amount(new_balance)}</b>", final_balance_style)
         elements.append(new_balance_para)
         
         elements.append(Spacer(1, 1*cm))
                 
         # Erstellungsdatum
         creation_date = datetime.now().strftime("%d.%m.%Y")
-        date_para = Paragraph(f"Erstellt am: {creation_date}", self.normal_style)
+        date_style = ParagraphStyle(
+            'CreationDate',
+            parent=self.normal_style,
+            alignment=TA_CENTER,
+            fontSize=9,
+            textColor=gray
+        )
+        date_para = Paragraph(f"Erstellt am: {creation_date}", date_style)
         elements.append(date_para)
         
         return elements
@@ -376,7 +484,8 @@ class BWAPDFGenerator:
         
         opening_balance = self._get_opening_balance()
         new_balance = self._calculate_new_balance(csv_processor)
-        year_total = year_data['Betrag'].sum() if not year_data.empty else 0.0
+        # Einheitlich Betrag_Clean verwenden
+        year_total = year_data['Betrag_Clean'].sum() if not year_data.empty and 'Betrag_Clean' in year_data.columns else 0.0
         
         balance_para = Paragraph(f"Kontostand 01.01.: {self._format_amount(opening_balance)}", self.normal_style)
         elements.append(balance_para)

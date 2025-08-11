@@ -61,7 +61,7 @@ def test_quarter_modes():
         print(f"   Q{quarter}: {total:,.2f} € ({len(quarter_data)} Buchungen)")
     
     # Test 2: Kumulative Auswertung (Standard)
-    print("\n🔍 Test 2: Kumulative Auswertung (ältere Quartale einschließend)")
+    print("\n🔍 Test 2: Kumulative Auswertung (kumuliere Quartale)")
     settings.setValue("quarter_mode", "cumulative")
     
     cumulative_total = 0.0

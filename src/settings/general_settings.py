@@ -5,8 +5,10 @@ Allgemeine Einstellungen Tab
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                QComboBox, QGroupBox, QFormLayout, QCheckBox,
-                               QPushButton, QFileDialog, QMessageBox)
+                               QPushButton, QFileDialog, QMessageBox, QLineEdit,
+                               QColorDialog)
 from PySide6.QtCore import QSettings
+from PySide6.QtGui import QColor, QPalette, QPixmap, QPainter, QIcon
 import json
 
 
@@ -34,6 +36,15 @@ class GeneralSettingsTab(QWidget):
         
         language_layout.addRow("Sprache:", self.language_combo)
         layout.addWidget(language_group)
+        
+        # Darstellungseinstellungen
+        appearance_group = QGroupBox("Darstellung")
+        appearance_layout = QFormLayout(appearance_group)
+        
+        # Überschriftenfarbe
+        self.create_header_color_controls(appearance_layout)
+        
+        layout.addWidget(appearance_group)
         
         # Zahlenformat
         number_group = QGroupBox("Zahlenformat")
@@ -63,10 +74,10 @@ class GeneralSettingsTab(QWidget):
         
         self.quarter_mode_combo = QComboBox()
         self.quarter_mode_combo.addItems([
-            "ältere Quartale einschließend", 
+            "kumuliere Quartale", 
             "Quartalsweise"
         ])
-        self.quarter_mode_combo.setCurrentText("ältere Quartale einschließend")
+        self.quarter_mode_combo.setCurrentText("kumuliere Quartale")
         
         quarter_layout.addRow("Berechnungsmodus:", self.quarter_mode_combo)
         layout.addWidget(quarter_group)
@@ -109,6 +120,166 @@ class GeneralSettingsTab(QWidget):
         # Spacer am Ende
         layout.addStretch()
         
+    def create_header_color_controls(self, layout):
+        """Erstellt die Farbauswahl-Controls für Überschriftenfarbe"""
+        
+        # Container für RGB-Eingabe und Farbwähler
+        color_container = QWidget()
+        color_layout = QHBoxLayout(color_container)
+        color_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # RGB-Eingabefelder
+        rgb_container = QWidget()
+        rgb_layout = QHBoxLayout(rgb_container)
+        rgb_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # R, G, B Labels und Eingabefelder
+        rgb_layout.addWidget(QLabel("R:"))
+        self.red_input = QLineEdit()
+        self.red_input.setMaximumWidth(50)
+        self.red_input.setPlaceholderText("0")
+        self.red_input.textChanged.connect(self.on_rgb_changed)
+        rgb_layout.addWidget(self.red_input)
+        
+        rgb_layout.addWidget(QLabel("G:"))
+        self.green_input = QLineEdit()
+        self.green_input.setMaximumWidth(50)
+        self.green_input.setPlaceholderText("0")
+        self.green_input.textChanged.connect(self.on_rgb_changed)
+        rgb_layout.addWidget(self.green_input)
+        
+        rgb_layout.addWidget(QLabel("B:"))
+        self.blue_input = QLineEdit()
+        self.blue_input.setMaximumWidth(50)
+        self.blue_input.setPlaceholderText("255")
+        self.blue_input.textChanged.connect(self.on_rgb_changed)
+        rgb_layout.addWidget(self.blue_input)
+        
+        color_layout.addWidget(rgb_container)
+        
+        # Farbwähler-Button mit Farbvorschau
+        self.color_button = QPushButton()
+        self.color_button.setMaximumWidth(40)
+        self.color_button.setMaximumHeight(30)
+        self.color_button.clicked.connect(self.open_color_dialog)
+        self.color_button.setToolTip("Farbwähler öffnen")
+        color_layout.addWidget(self.color_button)
+        
+        # HEX-Eingabefeld
+        hex_container = QWidget()
+        hex_layout = QHBoxLayout(hex_container)
+        hex_layout.setContentsMargins(0, 0, 0, 0)
+        
+        hex_layout.addWidget(QLabel("HEX:"))
+        self.hex_input = QLineEdit()
+        self.hex_input.setMaximumWidth(80)
+        self.hex_input.setPlaceholderText("#0000FF")
+        self.hex_input.textChanged.connect(self.on_hex_changed)
+        hex_layout.addWidget(self.hex_input)
+        
+        color_layout.addWidget(hex_container)
+        
+        # Standard-Farbe setzen (Blau)
+        self.current_color = QColor(0, 0, 255)  # Blau als Standard
+        self.update_color_preview()
+        self.update_color_fields()
+        
+        layout.addRow("Überschriftenfarbe:", color_container)
+        
+    def update_color_preview(self):
+        """Aktualisiert die Farbvorschau im Button"""
+        pixmap = QPixmap(32, 24)
+        pixmap.fill(self.current_color)
+        
+        # Schwarzen Rahmen hinzufügen
+        painter = QPainter(pixmap)
+        painter.setPen(QColor(0, 0, 0))
+        painter.drawRect(0, 0, 31, 23)
+        painter.end()
+        
+        self.color_button.setIcon(QIcon(pixmap))
+        
+    def update_color_fields(self):
+        """Aktualisiert alle Farbfelder basierend auf der aktuellen Farbe"""
+        # RGB-Werte aktualisieren
+        self.red_input.blockSignals(True)
+        self.green_input.blockSignals(True)
+        self.blue_input.blockSignals(True)
+        self.hex_input.blockSignals(True)
+        
+        self.red_input.setText(str(self.current_color.red()))
+        self.green_input.setText(str(self.current_color.green()))
+        self.blue_input.setText(str(self.current_color.blue()))
+        self.hex_input.setText(self.current_color.name().upper())
+        
+        self.red_input.blockSignals(False)
+        self.green_input.blockSignals(False)
+        self.blue_input.blockSignals(False)
+        self.hex_input.blockSignals(False)
+        
+    def on_rgb_changed(self):
+        """Wird aufgerufen wenn RGB-Werte geändert werden"""
+        try:
+            r = int(self.red_input.text() or "0")
+            g = int(self.green_input.text() or "0") 
+            b = int(self.blue_input.text() or "0")
+            
+            # Werte auf 0-255 begrenzen
+            r = max(0, min(255, r))
+            g = max(0, min(255, g))
+            b = max(0, min(255, b))
+            
+            self.current_color = QColor(r, g, b)
+            self.update_color_preview()
+            
+            # HEX-Feld aktualisieren (ohne Signal zu triggern)
+            self.hex_input.blockSignals(True)
+            self.hex_input.setText(self.current_color.name().upper())
+            self.hex_input.blockSignals(False)
+            
+        except ValueError:
+            # Ungültige Eingabe ignorieren
+            pass
+            
+    def on_hex_changed(self):
+        """Wird aufgerufen wenn HEX-Wert geändert wird"""
+        hex_text = self.hex_input.text().strip()
+        
+        # # hinzufügen falls nicht vorhanden
+        if hex_text and not hex_text.startswith('#'):
+            hex_text = '#' + hex_text
+            
+        if QColor.isValidColor(hex_text):
+            self.current_color = QColor(hex_text)
+            self.update_color_preview()
+            
+            # RGB-Felder aktualisieren (ohne Signale zu triggern)
+            self.red_input.blockSignals(True)
+            self.green_input.blockSignals(True)
+            self.blue_input.blockSignals(True)
+            
+            self.red_input.setText(str(self.current_color.red()))
+            self.green_input.setText(str(self.current_color.green()))
+            self.blue_input.setText(str(self.current_color.blue()))
+            
+            self.red_input.blockSignals(False)
+            self.green_input.blockSignals(False)
+            self.blue_input.blockSignals(False)
+            
+    def open_color_dialog(self):
+        """Öffnet den Farbwähler-Dialog"""
+        color = QColorDialog.getColor(
+            self.current_color, 
+            self, 
+            "Überschriftenfarbe wählen",
+            QColorDialog.ColorDialogOption.ShowAlphaChannel
+        )
+        
+        if color.isValid():
+            self.current_color = color
+            self.update_color_preview()
+            self.update_color_fields()
+        
     def load_settings(self):
         """Lädt die Einstellungen"""
         # Sprache laden
@@ -132,7 +303,7 @@ class GeneralSettingsTab(QWidget):
         # Quartalsauswertungs-Modus laden
         quarter_mode = self.settings.value("quarter_mode", "cumulative")
         if quarter_mode == "cumulative":
-            self.quarter_mode_combo.setCurrentText("ältere Quartale einschließend")
+            self.quarter_mode_combo.setCurrentText("kumuliere Quartale")
         else:
             self.quarter_mode_combo.setCurrentText("Quartalsweise")
             
@@ -145,6 +316,15 @@ class GeneralSettingsTab(QWidget):
         
         generate_chart = self.settings.value("generate_chart_report", True, type=bool)
         self.generate_chart_report_cb.setChecked(generate_chart)
+        
+        # Überschriftenfarbe laden
+        header_color = self.settings.value("header_color", "#0000FF")  # Standardfarbe Blau
+        if QColor.isValidColor(header_color):
+            self.current_color = QColor(header_color)
+        else:
+            self.current_color = QColor(0, 0, 255)  # Fallback auf Blau
+        self.update_color_preview()
+        self.update_color_fields()
         
     def save_settings(self):
         """Speichert die Einstellungen"""
@@ -166,7 +346,7 @@ class GeneralSettingsTab(QWidget):
         
         # Quartalsauswertungs-Modus speichern
         quarter_mode_text = self.quarter_mode_combo.currentText()
-        quarter_mode = "cumulative" if quarter_mode_text == "ältere Quartale einschließend" else "quarterly"
+        quarter_mode = "cumulative" if quarter_mode_text == "kumuliere Quartale" else "quarterly"
         self.settings.setValue("quarter_mode", quarter_mode)
         
         # Berichterstellungs-Optionen speichern
@@ -174,14 +354,22 @@ class GeneralSettingsTab(QWidget):
         self.settings.setValue("generate_account_reports", self.generate_account_reports_cb.isChecked())
         self.settings.setValue("generate_chart_report", self.generate_chart_report_cb.isChecked())
         
+        # Überschriftenfarbe speichern
+        self.settings.setValue("header_color", self.current_color.name())
+        
     def reset_to_defaults(self):
         """Setzt die Einstellungen auf Standard zurück"""
         self.language_combo.setCurrentText("Deutsch")
         self.decimal_combo.setCurrentText(",")
         self.csv_separator_combo.setCurrentText(";")
-        self.quarter_mode_combo.setCurrentText("ältere Quartale einschließend")
+        self.quarter_mode_combo.setCurrentText("kumuliere Quartale")
         self.generate_quarterly_reports_cb.setChecked(True)
         self.generate_account_reports_cb.setChecked(True)
+        
+        # Überschriftenfarbe auf Standard zurücksetzen
+        self.current_color = QColor(0, 0, 255)  # Blau
+        self.update_color_preview()
+        self.update_color_fields()
         
     def export_settings(self):
         """Exportiert alle Anwendungseinstellungen in eine JSON-Datei"""
