@@ -326,8 +326,13 @@ class MainWindow(QMainWindow):
             self.process_file(file_path)
                 
     def process_file(self, file_path: str):
-        """Verarbeitet eine Datei (CSV, Excel, ODS)"""
+        """Verarbeitet eine Datei (CSV, Excel, ODS, JSON)"""
         try:
+            # JSON-Datei erkennen
+            if file_path.lower().endswith('.json'):
+                self._process_json_file(file_path)
+                return
+            
             # Prüfen ob die Datei mehrere Arbeitsblätter hat
             sheet_name = None
             if self.csv_processor.has_multiple_sheets(file_path):
@@ -353,6 +358,105 @@ class MainWindow(QMainWindow):
                 self,
                 "Fehler beim Datei-Import",
                 f"Fehler beim Verarbeiten der Datei:\n{str(e)}"
+            )
+    
+    def _process_json_file(self, file_path: str):
+        """Verarbeitet eine JSON-Datei mit BWA-Daten"""
+        progress = QProgressDialog("JSON-Datei wird verarbeitet...", "Abbrechen", 0, 100, self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.show()
+        
+        try:
+            progress.setValue(20)
+            QApplication.processEvents()
+            
+            # JSON-Datei verarbeiten
+            success = self.csv_processor.load_file(file_path)
+            
+            progress.setValue(60)
+            QApplication.processEvents()
+            
+            if success:
+                # Status über FileDropArea anzeigen
+                self.file_drop_area.show_imported_file(file_path, mapping_complete=True)
+                
+                progress.setValue(80)
+                QApplication.processEvents()
+                
+                # Direkt BWA erstellen (alle Daten sind in der JSON enthalten)
+                self._create_bwa_from_json()
+                
+                progress.setValue(100)
+                QApplication.processEvents()
+                
+            else:
+                QMessageBox.warning(
+                    self,
+                    "JSON-Import Fehler", 
+                    "Die JSON-Datei konnte nicht verarbeitet werden.\n"
+                    "Stellen Sie sicher, dass es sich um eine gültige BWA-JSON-Datei handelt."
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Fehler beim JSON-Import",
+                f"Fehler beim Verarbeiten der JSON-Datei:\n{str(e)}"
+            )
+            
+        finally:
+            progress.close()
+    
+    def _create_bwa_from_json(self):
+        """Erstellt BWA-PDF aus JSON-Daten"""
+        try:
+            # BWA-Datei-Dialog
+            bwa_file, _ = QFileDialog.getSaveFileName(
+                self,
+                "BWA-PDF speichern",
+                "",
+                "PDF-Dateien (*.pdf)"
+            )
+            
+            if bwa_file:
+                # Progress-Dialog anzeigen
+                progress = QProgressDialog("BWA wird aus JSON-Daten erstellt...", "Abbrechen", 0, 100, self)
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
+                progress.setAutoClose(True)
+                progress.setAutoReset(True)
+                progress.show()
+                
+                progress.setValue(20)
+                QApplication.processEvents()
+                
+                # BWA generieren (keine Sachkonto-Mappings nötig, da aus JSON)
+                success = self.bwa_generator.generate_bwa_pdf(bwa_file, self.csv_processor)
+                
+                progress.setValue(100)
+                QApplication.processEvents()
+                
+                if success:
+                    QMessageBox.information(
+                        self,
+                        "BWA erstellt",
+                        f"BWA wurde erfolgreich aus JSON-Daten erstellt:\n{bwa_file}"
+                    )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "BWA-Erstellung fehlgeschlagen",
+                        "Es gab einen Fehler beim Erstellen der BWA aus den JSON-Daten."
+                    )
+                
+                progress.close()
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Fehler bei BWA-Erstellung",
+                f"Fehler beim Erstellen der BWA aus JSON-Daten:\n{str(e)}"
             )
             
     def process_file_with_sheet(self, file_path: str, sheet_name: str = None):

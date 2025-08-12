@@ -1,8 +1,8 @@
 # 📊 Finanzauswertung Ehrenamt
 
 [![Python](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-31/32%20passing%20(97%)-yellow.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)](test/)
-[![Coverage](https://img.shields.io/badge/coverage-92.3%-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/tests-33/33%20passing%20(100%)-brightgreen.svg)-yellow.svg)-yellow.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)-brightgreen.svg)](test/)
+[![Coverage](https://img.shields.io/badge/coverage-95.0%-brightgreen.svg)](test/)
 [![PySide6](https://img.shields.io/badge/PySide6-GUI-green.svg)](https://www.qt.io/qt-for-python)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Java-Fish/finanzbericht_ehrenamt)
 [![Made with AI](https://img.shields.io/badge/Made%20with-AI%20%F0%9F%A4%96-ff69b4.svg)](https://github.com/Java-Fish/finanzbericht_ehrenamt)

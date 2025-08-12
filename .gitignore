@@ -9,6 +9,7 @@ __pycache__/
 # will be built by build.py
 *.icns
 *.ico
+build
 
 # testdata
 testdata/
@@ -16,7 +17,7 @@ testdata/
 !README.md
 !BUILD_README.md
 /handbuch
-build
+*.pdf
 
 # Test-Artefakte
 test_badge.json

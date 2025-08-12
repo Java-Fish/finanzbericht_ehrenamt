@@ -72,7 +72,7 @@ class FileDropArea(QFrame):
         # Beschreibungstext
         self.desc_label = QLabel(
             "Unterstützte Formate: Excel (.xlsx, .xls), "
-            "LibreOffice Calc (.ods), CSV (.csv)"
+            "LibreOffice Calc (.ods), CSV (.csv), JSON (.json)"
         )
         self.desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.desc_label.setWordWrap(True)
@@ -293,10 +293,11 @@ class FileDropArea(QFrame):
         file_dialog = QFileDialog(self)
         file_dialog.setWindowTitle("Datei auswählen")
         file_dialog.setNameFilter(
-            "Tabellendateien (*.xlsx *.xls *.ods *.csv);;"
+            "Tabellendateien (*.xlsx *.xls *.ods *.csv *.json);;"
             "Excel-Dateien (*.xlsx *.xls);;"
             "LibreOffice Calc (*.ods);;"
             "CSV-Dateien (*.csv);;"
+            "JSON-Dateien (*.json);;"
             "Alle Dateien (*.*)"
         )
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -312,7 +313,7 @@ class FileDropArea(QFrame):
         if not os.path.isfile(file_path):
             return False
             
-        supported_extensions = ['.xlsx', '.xls', '.ods', '.csv']
+        supported_extensions = ['.xlsx', '.xls', '.ods', '.csv', '.json']
         file_extension = os.path.splitext(file_path)[1].lower()
         return file_extension in supported_extensions
         

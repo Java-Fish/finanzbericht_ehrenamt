@@ -5,6 +5,7 @@ CSV-Datenverarbeitung für BWA-Generierung
 
 import pandas as pd
 import csv
+import json
 from PySide6.QtCore import QSettings
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime, date
@@ -13,18 +14,24 @@ from .file_handler import FileHandler
 
 
 class CSVProcessor:
-    """Verarbeitet CSV-Dateien für BWA-Analyse"""
+    """Verarbeitet CSV-Dateien und JSON-Dateien für BWA-Analyse"""
     
     def __init__(self):
         self.settings = QSettings()
         self.raw_data = None
         self.processed_data = None
         self.file_handler = FileHandler()
+        self.json_data = None  # Für JSON-Import
+        self.is_json_source = False  # Flag ob Daten aus JSON stammen
         
     def load_file(self, file_path: str, sheet_name: str = None) -> bool:
-        """Lädt eine Datei (CSV, Excel, ODS) und verarbeitet sie"""
+        """Lädt eine Datei (CSV, Excel, ODS, JSON) und verarbeitet sie"""
         try:
-            # Datei mit dem FileHandler laden
+            # JSON-Datei erkennen und laden
+            if file_path.lower().endswith('.json'):
+                return self._load_json_file(file_path)
+            
+            # Andere Dateiformate mit dem FileHandler laden
             self.raw_data = self.file_handler.process_file(file_path, sheet_name)
             
             # FileHandler gibt bereits ein DataFrame zurück
@@ -36,6 +43,7 @@ class CSVProcessor:
             self.raw_data.columns = self.raw_data.columns.str.strip()
             
             # Daten verarbeiten
+            self.is_json_source = False
             return self._process_data()
             
         except Exception as e:
@@ -70,6 +78,139 @@ class CSVProcessor:
                 pass
         
         return account_str
+        
+    def _load_json_file(self, file_path: str) -> bool:
+        """Lädt eine JSON-Datei mit BWA-Daten"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                self.json_data = json.load(f)
+            
+            # JSON-Struktur validieren
+            if not self._validate_json_structure(self.json_data):
+                print("Ungültige JSON-Struktur für BWA-Import")
+                return False
+            
+            # DataFrame aus JSON-Daten erstellen
+            self.raw_data = self._create_dataframe_from_json()
+            self.is_json_source = True
+            
+            # Daten verarbeiten
+            return self._process_data()
+            
+        except Exception as e:
+            print(f"Fehler beim Laden der JSON-Datei: {e}")
+            return False
+    
+    def _validate_json_structure(self, json_data: dict) -> bool:
+        """Validiert die JSON-Struktur für BWA-Import"""
+        required_keys = ['metadata', 'organization', 'balance_info', 'account_details']
+        
+        for key in required_keys:
+            if key not in json_data:
+                print(f"Fehlender Schlüssel in JSON: {key}")
+                return False
+        
+        # Account-Details müssen vorhanden sein
+        if not json_data.get('account_details') or not isinstance(json_data['account_details'], list):
+            print("Keine Kontodaten in JSON gefunden")
+            return False
+        
+        return True
+    
+    def _create_dataframe_from_json(self) -> pd.DataFrame:
+        """Erstellt ein DataFrame aus den JSON-Kontodaten"""
+        rows = []
+        
+        for account in self.json_data['account_details']:
+            account_number = account.get('account_number', '')
+            account_name = account.get('account_name', '')
+            
+            for transaction in account.get('transactions', []):
+                row = {
+                    'Buchungsnr.': transaction.get('booking_number', ''),
+                    'Sachkontonr.': account_number,
+                    'Sachkonto': account_name,
+                    'Buchungstag': transaction.get('date', ''),
+                    'Verwendungszweck': transaction.get('purpose', ''),
+                    'Beguenstigter/Zahlungspflichtiger': '',
+                    'Kontonummer/IBAN': '',
+                    'BIC (SWIFT-Code)': '',
+                    'Betrag': transaction.get('amount', 0.0),
+                    'Beleg': '',
+                    'Unnamed: 10': '',
+                    'Unnamed: 11': ''
+                }
+                rows.append(row)
+        
+        return pd.DataFrame(rows)
+    
+    def get_json_organization_data(self) -> Optional[Dict]:
+        """Gibt Organisationsdaten aus JSON zurück (falls JSON-Quelle)"""
+        if self.is_json_source and self.json_data:
+            return self.json_data.get('organization', {})
+        return None
+    
+    def get_json_balance_info(self) -> Optional[Dict]:
+        """Gibt Kontostandsinfo aus JSON zurück (falls JSON-Quelle)"""
+        if self.is_json_source and self.json_data:
+            return self.json_data.get('balance_info', {})
+        return None
+    
+    def get_json_account_mappings(self) -> Optional[Dict[str, str]]:
+        """Erstellt Sachkonto-Mappings aus JSON-Daten"""
+        if not self.is_json_source or not self.json_data:
+            return None
+        
+        # Direkt aus dem JSON die account_mappings auslesen (neue Struktur)
+        account_mappings = self.json_data.get('account_mappings', {})
+        
+        if account_mappings:
+            print(f"✅ Account-Mappings aus JSON geladen: {len(account_mappings)} Einträge")
+            return account_mappings
+        
+        # Fallback: BWA-Gruppen aus yearly_summary extrahieren (alte Struktur)
+        yearly_summary = self.json_data.get('yearly_summary', {})
+        bwa_groups = yearly_summary.get('bwa_groups', {})
+        
+        # Account-Mappings rekonstruieren
+        reconstructed_mappings = {}
+        
+        # Für jedes Konto versuchen, die BWA-Gruppe zu finden
+        for account in self.json_data.get('account_details', []):
+            account_number = account.get('account_number', '')
+            # Standardmäßig als "Nicht zugeordnet" setzen
+            # In einer echten Implementierung könnte man versuchen, die ursprüngliche Zuordnung zu rekonstruieren
+            reconstructed_mappings[account_number] = "Nicht zugeordnet"
+        
+        print(f"⚠️ Account-Mappings rekonstruiert (Fallback): {len(reconstructed_mappings)} Einträge")
+        return reconstructed_mappings
+    
+    def get_json_super_group_mappings(self) -> Optional[Dict[str, str]]:
+        """Erstellt Obergruppen-Mappings aus JSON-Daten"""
+        if not self.is_json_source or not self.json_data:
+            return None
+        
+        # Direkt aus dem JSON die super_group_mappings auslesen (neue Struktur)
+        super_group_mappings = self.json_data.get('super_group_mappings', {})
+        
+        if super_group_mappings:
+            print(f"✅ Super-Group-Mappings aus JSON geladen: {len(super_group_mappings)} Einträge")
+            return super_group_mappings
+        
+        # Fallback: Obergruppen aus yearly_summary extrahieren (alte Struktur)
+        yearly_summary = self.json_data.get('yearly_summary', {})
+        summary = yearly_summary.get('summary', {})
+        
+        reconstructed_mappings = {}
+        
+        # Aus der gruppierten Zusammenfassung die Mappings rekonstruieren
+        for super_group, bwa_groups in summary.items():
+            if isinstance(bwa_groups, dict):
+                for bwa_group in bwa_groups.keys():
+                    reconstructed_mappings[bwa_group] = super_group
+        
+        print(f"⚠️ Super-Group-Mappings rekonstruiert (Fallback): {len(reconstructed_mappings)} Einträge")
+        return reconstructed_mappings
         
     def load_csv_file(self, file_path: str) -> bool:
         """Lädt eine CSV-Datei und verarbeitet sie (Legacy-Methode für Kompatibilität)"""

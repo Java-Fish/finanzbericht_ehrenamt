@@ -97,7 +97,11 @@ class BWAPDFGenerator:
             return blue
         
     def _get_opening_balance(self) -> float:
-        """Holt den Anfangskontostand aus den Einstellungen"""
+        """Holt den Anfangskontostand aus den Einstellungen oder JSON-Daten"""
+        # Wenn JSON-Daten verfügbar sind, diese verwenden
+        if hasattr(self, '_temp_opening_balance'):
+            return self._temp_opening_balance
+        
         return self.settings.value("opening_balance", 0.0, type=float)
         
     def _calculate_total_amount(self, csv_processor) -> float:
@@ -127,8 +131,63 @@ class BWAPDFGenerator:
         
         return opening_balance + quarter_total
         
-    def generate_bwa_pdf(self, output_path: str, csv_processor, account_mappings: Dict[str, str]) -> bool:
-        """Generiert das komplette BWA-PDF basierend auf Einstellungen"""
+    def generate_bwa_pdf(self, output_path: str, csv_processor, account_mappings: Dict[str, str] = None) -> bool:
+        """Generiert das komplette BWA-PDF basierend auf Einstellungen oder JSON-Daten"""
+        try:
+            # Styles vor jeder PDF-Generierung neu erstellen um aktuelle Farben zu berücksichtigen
+            self._create_custom_styles()
+            
+            # Prüfen ob Daten aus JSON stammen
+            if csv_processor.is_json_source:
+                return self._generate_bwa_from_json(output_path, csv_processor)
+            
+            # Standard-CSV-Verarbeitung
+            return self._generate_bwa_from_csv(output_path, csv_processor, account_mappings)
+            
+        except Exception as e:
+            print(f"Fehler bei der PDF-Generierung: {e}")
+            return False
+    
+    def _generate_bwa_from_json(self, output_path: str, csv_processor) -> bool:
+        """Generiert BWA-PDF aus JSON-Daten (überschreibt Einstellungen)"""
+        try:
+            # JSON-Daten aus dem CSV-Processor laden
+            json_org_data = csv_processor.get_json_organization_data()
+            json_balance_info = csv_processor.get_json_balance_info()
+            json_account_mappings = csv_processor.get_json_account_mappings()
+            json_super_group_mappings = csv_processor.get_json_super_group_mappings()
+            
+            # Temporäre Einstellungen aus JSON setzen
+            self._apply_json_settings_temporarily(json_org_data, json_balance_info, json_super_group_mappings)
+            
+            # BWA generieren mit JSON-Daten
+            result = self._generate_bwa_from_csv(output_path, csv_processor, json_account_mappings)
+            
+            # Einstellungen nach Generierung zurücksetzen (optional)
+            # self._restore_original_settings()
+            
+            return result
+            
+        except Exception as e:
+            print(f"Fehler bei der JSON-BWA-Generierung: {e}")
+            return False
+    
+    def _apply_json_settings_temporarily(self, org_data: Dict, balance_info: Dict, super_group_mappings: Dict):
+        """Wendet JSON-Daten temporär auf die Einstellungen an"""
+        if org_data:
+            # Organisation temporär überschreiben (ohne zu speichern)
+            self._temp_org_data = org_data
+            
+        if balance_info:
+            # Kontostand temporär überschreiben
+            self._temp_opening_balance = balance_info.get('opening_balance', 0.0)
+            
+        if super_group_mappings:
+            # Obergruppen temporär überschreiben
+            self._temp_super_group_mappings = super_group_mappings
+    
+    def _generate_bwa_from_csv(self, output_path: str, csv_processor, account_mappings: Dict[str, str]) -> bool:
+        """Generiert BWA-PDF aus CSV-Daten (Standard-Methode)"""
         try:
             # Styles vor jeder PDF-Generierung neu erstellen um aktuelle Farben zu berücksichtigen
             self._create_custom_styles()
@@ -210,6 +269,13 @@ class BWAPDFGenerator:
             
             # Nach dem Build kennen wir die Seitenzahl
             self._total_pages = doc.page
+            
+            # JSON-Export (falls aktiviert und nicht JSON-Quelle)
+            if not csv_processor.is_json_source:
+                json_export_enabled = settings.value("json_export", False, type=bool)
+                if json_export_enabled:
+                    self._generate_json_export(output_path, csv_processor, account_mappings)
+            
             return True
             
         except Exception as e:
@@ -217,7 +283,11 @@ class BWAPDFGenerator:
             return False
             
     def _load_super_group_mappings(self) -> Dict[str, str]:
-        """Lädt die Obergruppen-Mappings aus den Einstellungen"""
+        """Lädt die Obergruppen-Mappings aus den Einstellungen oder JSON-Daten"""
+        # Wenn JSON-Daten verfügbar sind, diese verwenden
+        if hasattr(self, '_temp_super_group_mappings'):
+            return self._temp_super_group_mappings
+        
         mappings_json = self.settings.value("super_group_mappings", "{}")
         try:
             return json.loads(mappings_json)
@@ -259,6 +329,206 @@ class BWAPDFGenerator:
                 canvas.drawString(page_width - 2 * cm - text_width, footer_y, organization_name)
                 canvas.restoreState()
             
+    def _generate_json_export(self, pdf_path: str, csv_processor, account_mappings: Dict[str, str]) -> bool:
+        """Generiert JSON-Export der BWA-Daten parallel zum PDF"""
+        try:
+            # JSON-Pfad aus PDF-Pfad ableiten
+            json_path = pdf_path.rsplit('.', 1)[0] + '.json'
+            
+            # Einstellungen laden
+            settings = QSettings()
+            generate_quarterly = settings.value("generate_quarterly_reports", True, type=bool)
+            generate_accounts = settings.value("generate_account_reports", True, type=bool)
+            quarter_mode = settings.value("quarter_mode", "cumulative")
+            
+            # Account-Mappings und Super-Group-Mappings laden
+            super_group_mappings = self._load_super_group_mappings()
+            
+            # JSON-Datenstruktur aufbauen
+            json_data = {
+                "metadata": {
+                    "export_date": datetime.now().isoformat(),
+                    "year": datetime.now().year,
+                    "quarter_mode": quarter_mode,
+                    "generated_reports": {
+                        "quarterly": generate_quarterly,
+                        "account_details": generate_accounts
+                    }
+                },
+                "organization": self._get_organization_data(),
+                "balance_info": self._get_balance_info(csv_processor),
+                "account_mappings": account_mappings if account_mappings else {},
+                "super_group_mappings": super_group_mappings if super_group_mappings else {},
+                "yearly_summary": self._get_yearly_summary_data(csv_processor, account_mappings),
+                "quarterly_summaries": [],
+                "account_details": []
+            }
+            
+            # Quartalsauswertungen hinzufügen (falls aktiviert)
+            if generate_quarterly:
+                for quarter in range(1, 5):
+                    quarter_data = self._get_quarter_summary_data(quarter, csv_processor, account_mappings)
+                    if quarter_data:
+                        json_data["quarterly_summaries"].append(quarter_data)
+            
+            # Sachkonten-Details hinzufügen (falls aktiviert)
+            if generate_accounts:
+                accounts = csv_processor.get_account_numbers()
+                for account in accounts:
+                    account_data = self._get_account_detail_data(account, csv_processor)
+                    if account_data:
+                        json_data["account_details"].append(account_data)
+            
+            # JSON-Datei schreiben
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"JSON-Export erstellt: {json_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Fehler beim JSON-Export: {e}")
+            return False
+    
+    def _get_organization_data(self) -> Dict:
+        """Holt Organisationsdaten für JSON-Export"""
+        return {
+            "name": self.settings.value("organization/name", ""),
+            "street": self.settings.value("organization/street", ""),
+            "zip": self.settings.value("organization/zip", ""),
+            "city": self.settings.value("organization/city", ""),
+            "phone": self.settings.value("organization/phone", ""),
+            "email": self.settings.value("organization/email", ""),
+            "info": self.settings.value("organization/info", "")
+        }
+    
+    def _get_balance_info(self, csv_processor) -> Dict:
+        """Holt Kontostandsinformationen für JSON-Export"""
+        opening_balance = self._get_opening_balance()
+        total_amount = self._calculate_total_amount(csv_processor)
+        new_balance = self._calculate_new_balance(csv_processor)
+        
+        return {
+            "opening_balance": float(opening_balance),
+            "total_transactions": float(total_amount),
+            "closing_balance": float(new_balance)
+        }
+    
+    def _get_yearly_summary_data(self, csv_processor, account_mappings: Dict[str, str]) -> Dict:
+        """Erstellt Jahresübersicht für JSON-Export"""
+        year_data = csv_processor.get_year_data()
+        
+        if year_data.empty:
+            return {"summary": {}, "total": 0.0}
+        
+        summary = self._create_year_summary(year_data, account_mappings)
+        total = sum(summary.values()) if summary else 0.0
+        
+        # Obergruppen-Zuordnung hinzufügen
+        super_group_mappings = self._load_super_group_mappings()
+        grouped_summary = {}
+        
+        for bwa_group, amount in summary.items():
+            super_group = super_group_mappings.get(bwa_group, "Nicht zugeordnet")
+            if super_group not in grouped_summary:
+                grouped_summary[super_group] = {}
+            grouped_summary[super_group][bwa_group] = float(amount)
+        
+        return {
+            "summary": grouped_summary,
+            "bwa_groups": {k: float(v) for k, v in summary.items()},
+            "total": float(total)
+        }
+    
+    def _get_quarter_summary_data(self, quarter: int, csv_processor, account_mappings: Dict[str, str]) -> Optional[Dict]:
+        """Erstellt Quartalsübersicht für JSON-Export"""
+        quarter_data = csv_processor.get_data_by_quarter(quarter)
+        
+        if quarter_data.empty:
+            return None
+        
+        summary = self._create_quarter_summary(quarter_data, account_mappings)
+        total = sum(summary.values()) if summary else 0.0
+        
+        # Kontostandsberechnung
+        opening_balance = self._get_opening_balance()
+        quarter_balance = self._calculate_quarter_balance(quarter, csv_processor)
+        quarter_total = quarter_data['Betrag_Clean'].sum() if 'Betrag_Clean' in quarter_data.columns else 0.0
+        
+        # Obergruppen-Zuordnung
+        super_group_mappings = self._load_super_group_mappings()
+        grouped_summary = {}
+        
+        for bwa_group, amount in summary.items():
+            super_group = super_group_mappings.get(bwa_group, "Nicht zugeordnet")
+            if super_group not in grouped_summary:
+                grouped_summary[super_group] = {}
+            grouped_summary[super_group][bwa_group] = float(amount)
+        
+        return {
+            "quarter": quarter,
+            "summary": grouped_summary,
+            "bwa_groups": {k: float(v) for k, v in summary.items()},
+            "total": float(total),
+            "balance_info": {
+                "opening_balance": float(opening_balance),
+                "quarter_transactions": float(quarter_total),
+                "quarter_end_balance": float(quarter_balance)
+            }
+        }
+    
+    def _get_account_detail_data(self, account_number: str, csv_processor) -> Optional[Dict]:
+        """Erstellt Sachkonto-Details für JSON-Export"""
+        account_data = csv_processor.get_data_by_account(account_number)
+        
+        if account_data.empty:
+            return None
+        
+        # Sachkonto-Name ermitteln
+        account_name = ""
+        if 'Sachkonto' in account_data.columns:
+            name = account_data['Sachkonto'].iloc[0]
+            if name and str(name) != 'nan':
+                account_name = str(name)
+        
+        # Buchungen aufbereiten
+        transactions = []
+        total = 0.0
+        
+        for _, row in account_data.iterrows():
+            # Datum formatieren
+            date_str = ""
+            if 'Buchungstag' in row:
+                try:
+                    if hasattr(row['Buchungstag'], 'strftime'):
+                        date_str = row['Buchungstag'].strftime('%Y-%m-%d')
+                    else:
+                        date_obj = pd.to_datetime(row['Buchungstag'])
+                        date_str = date_obj.strftime('%Y-%m-%d')
+                except:
+                    date_str = str(row['Buchungstag'])
+            
+            buchungsnr = row['Buchungsnr.'] if 'Buchungsnr.' in row and pd.notna(row['Buchungsnr.']) else ''
+            purpose = row['Verwendungszweck'] if 'Verwendungszweck' in row else ''
+            amount = row['Betrag_Clean']
+            
+            transactions.append({
+                "booking_number": str(buchungsnr),
+                "date": date_str,
+                "purpose": str(purpose),
+                "amount": float(amount)
+            })
+            
+            total += amount
+        
+        return {
+            "account_number": str(account_number),
+            "account_name": account_name,
+            "total": float(total),
+            "transaction_count": len(transactions),
+            "transactions": transactions
+        }
+            
     def _create_cover_page(self, csv_processor) -> List:
         """Erstellt das Deckblatt mit Organisationsinformationen, Logo und Kontodaten"""
         elements = []
@@ -274,14 +544,26 @@ class BWAPDFGenerator:
         elements.append(year_para)
         elements.append(Spacer(1, 1.5*cm))
         
-        # Organisationsdaten (oben im Dokument)
-        org_name = self.settings.value("organization/name", "")
-        org_street = self.settings.value("organization/street", "")
-        org_zip = self.settings.value("organization/zip", "")
-        org_city = self.settings.value("organization/city", "")
-        org_phone = self.settings.value("organization/phone", "")
-        org_email = self.settings.value("organization/email", "")
-        org_info = self.settings.value("organization/info", "")
+        # Organisationsdaten (aus Einstellungen oder JSON)
+        if hasattr(self, '_temp_org_data'):
+            # JSON-Organisationsdaten verwenden
+            org_data = self._temp_org_data
+            org_name = org_data.get("name", "")
+            org_street = org_data.get("street", "")
+            org_zip = org_data.get("zip", "")
+            org_city = org_data.get("city", "")
+            org_phone = org_data.get("phone", "")
+            org_email = org_data.get("email", "")
+            org_info = org_data.get("info", "")
+        else:
+            # Standard-Einstellungen verwenden
+            org_name = self.settings.value("organization/name", "")
+            org_street = self.settings.value("organization/street", "")
+            org_zip = self.settings.value("organization/zip", "")
+            org_city = self.settings.value("organization/city", "")
+            org_phone = self.settings.value("organization/phone", "")
+            org_email = self.settings.value("organization/email", "")
+            org_info = self.settings.value("organization/info", "")
         
         # Organisationsname (fett und größer)
         if org_name:

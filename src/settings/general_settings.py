@@ -107,6 +107,11 @@ class GeneralSettingsTab(QWidget):
         self.show_organization_footer_cb.setChecked(True)
         reports_layout.addRow("Organisation in Footer anzeigen:", self.show_organization_footer_cb)
         
+        # JSON-Export-Option
+        self.json_export_cb = QCheckBox()
+        self.json_export_cb.setChecked(False)  # Standardmäßig deaktiviert
+        reports_layout.addRow("Zusätzlicher JSON-Export:", self.json_export_cb)
+        
         layout.addWidget(reports_group)
         
         # Einstellungen Export/Import
@@ -333,6 +338,9 @@ class GeneralSettingsTab(QWidget):
         show_organization_footer = self.settings.value("show_organization_footer", True, type=bool)
         self.show_organization_footer_cb.setChecked(show_organization_footer)
         
+        json_export = self.settings.value("json_export", False, type=bool)
+        self.json_export_cb.setChecked(json_export)
+        
         # Überschriftenfarbe laden
         header_color = self.settings.value("header_color", "#0000FF")  # Standardfarbe Blau
         if QColor.isValidColor(header_color):
@@ -373,6 +381,7 @@ class GeneralSettingsTab(QWidget):
         # Footer-Optionen speichern
         self.settings.setValue("show_page_number", self.show_page_number_cb.isChecked())
         self.settings.setValue("show_organization_footer", self.show_organization_footer_cb.isChecked())
+        self.settings.setValue("json_export", self.json_export_cb.isChecked())
         
         # Überschriftenfarbe speichern
         self.settings.setValue("header_color", self.current_color.name())
@@ -393,6 +402,7 @@ class GeneralSettingsTab(QWidget):
         # Footer-Optionen auf Standard zurücksetzen
         self.show_page_number_cb.setChecked(True)
         self.show_organization_footer_cb.setChecked(True)
+        self.json_export_cb.setChecked(False)  # JSON-Export standardmäßig deaktiviert
         
         # Überschriftenfarbe auf Standard zurücksetzen
         self.current_color = QColor(0, 0, 255)  # Blau

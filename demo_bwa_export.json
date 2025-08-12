@@ -1,0 +1,383 @@
+{
+  "metadata": {
+    "export_date": "2024-08-12T12:00:00",
+    "year": 2024,
+    "quarter_mode": "cumulative",
+    "generated_reports": {
+      "quarterly": true,
+      "account_details": true
+    }
+  },
+  "organization": {
+    "name": "Demo JSON Verein e.V.",
+    "street": "JSON Import Straße 789",
+    "zip": "98765",
+    "city": "Demostadt",
+    "phone": "+49 555 123456",
+    "email": "demo@json-verein.de",
+    "info": "Ein Demonstrationsverein aus JSON-Import"
+  },
+  "balance_info": {
+    "opening_balance": 5000.0,
+    "total_transactions": 2500.0,
+    "closing_balance": 7500.0
+  },
+  "yearly_summary": {
+    "summary": {
+      "Einnahmen": {
+        "Mitgliedsbeiträge": 3600.0,
+        "Spenden": 1800.0,
+        "Veranstaltungserlöse": 900.0
+      },
+      "Ausgaben": {
+        "Verwaltungskosten": -1200.0,
+        "Veranstaltungskosten": -1500.0,
+        "Raummiete": -1100.0
+      }
+    },
+    "bwa_groups": {
+      "Mitgliedsbeiträge": 3600.0,
+      "Spenden": 1800.0,
+      "Veranstaltungserlöse": 900.0,
+      "Verwaltungskosten": -1200.0,
+      "Veranstaltungskosten": -1500.0,
+      "Raummiete": -1100.0
+    },
+    "total": 2500.0
+  },
+  "quarterly_summaries": [
+    {
+      "quarter": 1,
+      "summary": {
+        "Einnahmen": {
+          "Mitgliedsbeiträge": 900.0,
+          "Spenden": 450.0
+        },
+        "Ausgaben": {
+          "Verwaltungskosten": -300.0,
+          "Raummiete": -275.0
+        }
+      },
+      "bwa_groups": {
+        "Mitgliedsbeiträge": 900.0,
+        "Spenden": 450.0,
+        "Verwaltungskosten": -300.0,
+        "Raummiete": -275.0
+      },
+      "total": 775.0,
+      "balance_info": {
+        "opening_balance": 5000.0,
+        "quarter_transactions": 775.0,
+        "quarter_end_balance": 5775.0
+      }
+    }
+  ],
+  "account_details": [
+    {
+      "account_number": "8100",
+      "account_name": "Mitgliedsbeiträge",
+      "total": 3600.0,
+      "transaction_count": 12,
+      "transactions": [
+        {
+          "booking_number": "1",
+          "date": "2024-01-15",
+          "purpose": "Mitgliedsbeitrag Januar",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "2",
+          "date": "2024-02-15",
+          "purpose": "Mitgliedsbeitrag Februar",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "3",
+          "date": "2024-03-15",
+          "purpose": "Mitgliedsbeitrag März",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "4",
+          "date": "2024-04-15",
+          "purpose": "Mitgliedsbeitrag April",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "5",
+          "date": "2024-05-15",
+          "purpose": "Mitgliedsbeitrag Mai",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "6",
+          "date": "2024-06-15",
+          "purpose": "Mitgliedsbeitrag Juni",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "7",
+          "date": "2024-07-15",
+          "purpose": "Mitgliedsbeitrag Juli",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "8",
+          "date": "2024-08-15",
+          "purpose": "Mitgliedsbeitrag August",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "9",
+          "date": "2024-09-15",
+          "purpose": "Mitgliedsbeitrag September",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "10",
+          "date": "2024-10-15",
+          "purpose": "Mitgliedsbeitrag Oktober",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "11",
+          "date": "2024-11-15",
+          "purpose": "Mitgliedsbeitrag November",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "12",
+          "date": "2024-12-15",
+          "purpose": "Mitgliedsbeitrag Dezember",
+          "amount": 300.0
+        }
+      ]
+    },
+    {
+      "account_number": "8200",
+      "account_name": "Spenden",
+      "total": 1800.0,
+      "transaction_count": 6,
+      "transactions": [
+        {
+          "booking_number": "13",
+          "date": "2024-01-20",
+          "purpose": "Spende Firma ABC",
+          "amount": 500.0
+        },
+        {
+          "booking_number": "14",
+          "date": "2024-03-20",
+          "purpose": "Spende Privatperson",
+          "amount": 200.0
+        },
+        {
+          "booking_number": "15",
+          "date": "2024-05-20",
+          "purpose": "Spende Unternehmen XYZ",
+          "amount": 400.0
+        },
+        {
+          "booking_number": "16",
+          "date": "2024-07-20",
+          "purpose": "Spende Stiftung",
+          "amount": 300.0
+        },
+        {
+          "booking_number": "17",
+          "date": "2024-09-20",
+          "purpose": "Spende Familie Müller",
+          "amount": 250.0
+        },
+        {
+          "booking_number": "18",
+          "date": "2024-11-20",
+          "purpose": "Spende Weihnachtsmarkt",
+          "amount": 150.0
+        }
+      ]
+    },
+    {
+      "account_number": "8300",
+      "account_name": "Veranstaltungserlöse",
+      "total": 900.0,
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "booking_number": "19",
+          "date": "2024-04-10",
+          "purpose": "Frühlingsbasar",
+          "amount": 350.0
+        },
+        {
+          "booking_number": "20",
+          "date": "2024-08-15",
+          "purpose": "Sommerfest",
+          "amount": 400.0
+        },
+        {
+          "booking_number": "21",
+          "date": "2024-12-05",
+          "purpose": "Weihnachtsmarkt",
+          "amount": 150.0
+        }
+      ]
+    },
+    {
+      "account_number": "6300",
+      "account_name": "Verwaltungskosten",
+      "total": -1200.0,
+      "transaction_count": 6,
+      "transactions": [
+        {
+          "booking_number": "22",
+          "date": "2024-01-05",
+          "purpose": "Büromaterial",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "23",
+          "date": "2024-03-05",
+          "purpose": "Porto und Versand",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "24",
+          "date": "2024-05-05",
+          "purpose": "Telefon und Internet",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "25",
+          "date": "2024-07-05",
+          "purpose": "Büroausstattung",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "26",
+          "date": "2024-09-05",
+          "purpose": "Software-Lizenz",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "27",
+          "date": "2024-11-05",
+          "purpose": "Bankgebühren",
+          "amount": -200.0
+        }
+      ]
+    },
+    {
+      "account_number": "6400",
+      "account_name": "Veranstaltungskosten",
+      "total": -1500.0,
+      "transaction_count": 5,
+      "transactions": [
+        {
+          "booking_number": "28",
+          "date": "2024-04-01",
+          "purpose": "Frühlingsbasar Dekoration",
+          "amount": -150.0
+        },
+        {
+          "booking_number": "29",
+          "date": "2024-04-08",
+          "purpose": "Frühlingsbasar Catering",
+          "amount": -200.0
+        },
+        {
+          "booking_number": "30",
+          "date": "2024-08-01",
+          "purpose": "Sommerfest Zelt",
+          "amount": -400.0
+        },
+        {
+          "booking_number": "31",
+          "date": "2024-08-10",
+          "purpose": "Sommerfest Verpflegung",
+          "amount": -500.0
+        },
+        {
+          "booking_number": "32",
+          "date": "2024-12-01",
+          "purpose": "Weihnachtsmarkt Stand",
+          "amount": -250.0
+        }
+      ]
+    },
+    {
+      "account_number": "6100",
+      "account_name": "Raummiete",
+      "total": -1100.0,
+      "transaction_count": 11,
+      "transactions": [
+        {
+          "booking_number": "33",
+          "date": "2024-01-31",
+          "purpose": "Raummiete Januar",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "34",
+          "date": "2024-02-29",
+          "purpose": "Raummiete Februar",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "35",
+          "date": "2024-03-31",
+          "purpose": "Raummiete März",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "36",
+          "date": "2024-04-30",
+          "purpose": "Raummiete April",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "37",
+          "date": "2024-05-31",
+          "purpose": "Raummiete Mai",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "38",
+          "date": "2024-06-30",
+          "purpose": "Raummiete Juni",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "39",
+          "date": "2024-07-31",
+          "purpose": "Raummiete Juli",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "40",
+          "date": "2024-08-31",
+          "purpose": "Raummiete August",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "41",
+          "date": "2024-09-30",
+          "purpose": "Raummiete September",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "42",
+          "date": "2024-10-31",
+          "purpose": "Raummiete Oktober",
+          "amount": -100.0
+        },
+        {
+          "booking_number": "43",
+          "date": "2024-11-30",
+          "purpose": "Raummiete November",
+          "amount": -100.0
+        }
+      ]
+    }
+  ]
+}
