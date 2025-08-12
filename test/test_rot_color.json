@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "export_date": "2025-08-12T14:46:34.468172",
+    "year": 2025,
+    "quarter_mode": "quarterly",
+    "generated_reports": {
+      "quarterly": true,
+      "account_details": true
+    }
+  },
+  "organization": {
+    "name": "Rot-Test Verein",
+    "street": "",
+    "zip": "",
+    "city": "",
+    "phone": "",
+    "email": "",
+    "info": ""
+  },
+  "balance_info": {
+    "opening_balance": 0.0,
+    "total_transactions": 100.0,
+    "closing_balance": 100.0
+  },
+  "account_mappings": {
+    "1000": "Kasse"
+  },
+  "account_names": {
+    "S00875": "Durchlaufende Posten Ausgaben",
+    "S00950": "Bankkonto 1",
+    "S02302": "Zuschüsse von Behörden",
+    "S02501": "Abschreibungen GWG",
+    "S02551": "Gehalt",
+    "S02552": "Personalkosten / Honorare",
+    "S02660": "Miete, Nebenkonten",
+    "S02664": "Reparaturen",
+    "S02701": "Büromaterial, Porto",
+    "S02702": "Telefon, IT",
+    "S02703": "Reisekosten",
+    "S02704": "Sonstige Kosten",
+    "S02705": "Projektkosten, Veranstaltungen",
+    "S02706": "Zeitschriften, Bücher",
+    "S02707": "Orchideen Ausgaben",
+    "S02708": "Honorare",
+    "S02709": "Beiträge",
+    "S02710": "NAJU",
+    "S02711": "Verwaltungskosten",
+    "S02712": "Ehrenamtspauschale",
+    "S02713": "Entomologie Ausgaben",
+    "S02715": "Waldwildnis",
+    "S02716": "Feldhamster Ausgaben",
+    "S02717": "Zackenschote",
+    "S02718": "Windknollen Ausgaben",
+    "S02719": "Ornithologie Ausgaben",
+    "S02720": "Wildvogelhilfe Ausgaben Allgemein",
+    "S02721": "Wildvogelhilfe Med. Behandlung",
+    "S02722": "Wildvogelhilfe Futterkosten",
+    "S02723": "Wildvogelhilfe Fahrtkosten",
+    "S02730": "Amphibien Ausgaben",
+    "S02740": "Vogelschlag",
+    "S02802": "Geschenke, Jubiläen, Ehrungen",
+    "S02810": "Repräsentationskosten",
+    "S02811": "Werbekosten",
+    "S03215": "Einnahmen Verein",
+    "S03216": "Mitgliedsbeiträge",
+    "S03217": "erhaltenes Honorar",
+    "S03218": "Spenden Windknollen",
+    "S03219": "Spenden Ornithologie",
+    "S03220": "Spenden NABU Jena",
+    "S03222": "Spenden Orchideenführung",
+    "S03223": "Spenden Wildvogelhilfe",
+    "S03224": "Förderung Naturschutzmacher*innen Fond",
+    "S03225": "Spenden Igelhilfe",
+    "S03226": "Spenden Amphibien",
+    "S03227": "Spenden Vogelschlag",
+    "S03251": "Bezahlte Spenden",
+    "S04712": "Nebenkosten des Geldverkehrs",
+    "S05070": "Einnahmen aus Verkauf",
+    "S06329": "Reinigungskosten",
+    "S06354": "Geringwertige Wirtschaftsgüter",
+    "S09000": "Saldovorträge Sachkonten"
+  },
+  "super_group_mappings": {},
+  "yearly_summary": {
+    "summary": {
+      "Nicht zugeordnet": {
+        "Kasse": 100.0
+      }
+    },
+    "bwa_groups": {
+      "Kasse": 100.0
+    },
+    "detailed_accounts": {
+      "Kasse": {
+        "1000": {
+          "name": "Sachkonto 1000",
+          "amount": 100.0
+        }
+      }
+    },
+    "total": 100.0
+  },
+  "quarterly_summaries": [
+    {
+      "quarter": 2,
+      "summary": {
+        "Nicht zugeordnet": {
+          "Kasse": 100.0
+        }
+      },
+      "bwa_groups": {
+        "Kasse": 100.0
+      },
+      "detailed_accounts": {
+        "Kasse": {
+          "1000": {
+            "name": "Sachkonto 1000",
+            "amount": 100.0
+          }
+        }
+      },
+      "total": 100.0,
+      "balance_info": {
+        "opening_balance": 0.0,
+        "quarter_transactions": 100.0,
+        "quarter_end_balance": 100.0
+      }
+    }
+  ],
+  "account_details": [
+    {
+      "account_number": "1000",
+      "account_name": "Kasse",
+      "total": 100.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "C001",
+          "date": "2025-05-01",
+          "purpose": "Farbtest",
+          "amount": 100.0
+        }
+      ]
+    }
+  ]
+}

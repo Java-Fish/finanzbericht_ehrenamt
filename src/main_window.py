@@ -431,8 +431,11 @@ class MainWindow(QMainWindow):
                 progress.setValue(20)
                 QApplication.processEvents()
                 
-                # BWA generieren (keine Sachkonto-Mappings nötig, da aus JSON)
-                success = self.bwa_generator.generate_bwa_pdf(bwa_file, self.csv_processor)
+                # Account-Mappings aus Einstellungen holen
+                account_mappings = self.settings_window.account_mapping_tab.get_account_mappings()
+                
+                # BWA generieren mit aktuellen Sachkonto-Mappings
+                success = self.bwa_generator.generate_bwa_pdf(bwa_file, self.csv_processor, account_mappings)
                 
                 progress.setValue(100)
                 QApplication.processEvents()

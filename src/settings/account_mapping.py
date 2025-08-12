@@ -5,10 +5,12 @@ Sachkonten-Mapping Tab für BWA-Gruppierung
 
 from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, 
                                QLineEdit, QLabel, QPushButton, QGroupBox,
-                               QSplitter, QListWidgetItem, QMessageBox)
+                               QSplitter, QListWidgetItem, QMessageBox, QFileDialog)
 from PySide6.QtCore import QSettings, Qt, Signal
 import json
 import pandas as pd
+import csv
+import os
 
 
 class AccountMappingTab(QWidget):
@@ -71,6 +73,21 @@ class AccountMappingTab(QWidget):
         self.refresh_button = QPushButton("Kontenliste aktualisieren")
         self.refresh_button.clicked.connect(self.refresh_accounts)
         accounts_layout.addWidget(self.refresh_button)
+        
+        # Import/Export Buttons
+        import_export_layout = QHBoxLayout()
+        
+        self.export_button = QPushButton("Export CSV")
+        self.export_button.clicked.connect(self.export_mappings_to_csv)
+        self.export_button.setToolTip("Exportiert BWA-Gruppierungen in eine CSV-Datei")
+        import_export_layout.addWidget(self.export_button)
+        
+        self.import_button = QPushButton("Import CSV")
+        self.import_button.clicked.connect(self.import_mappings_from_csv)
+        self.import_button.setToolTip("Importiert BWA-Gruppierungen aus einer CSV-Datei")
+        import_export_layout.addWidget(self.import_button)
+        
+        accounts_layout.addLayout(import_export_layout)
         
         left_layout.addWidget(accounts_group)
         splitter.addWidget(left_widget)
@@ -370,3 +387,192 @@ class AccountMappingTab(QWidget):
             if group:  # Nur wenn eine Gruppe zugeordnet ist
                 bwa_groups.add(group)
         return sorted(list(bwa_groups))
+    
+    def export_mappings_to_csv(self):
+        """Exportiert BWA-Gruppierungen in eine CSV-Datei"""
+        try:
+            # Dateiname für Export vorschlagen
+            suggested_filename = "bwa_gruppen_export.csv"
+            
+            # Datei-Dialog öffnen
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "BWA-Gruppierungen exportieren",
+                suggested_filename,
+                "CSV-Dateien (*.csv)"
+            )
+            
+            if not file_path:
+                return  # Benutzer hat abgebrochen
+            
+            # Sicherstellen dass Datei .csv Endung hat
+            if not file_path.lower().endswith('.csv'):
+                file_path += '.csv'
+            
+            # CSV-Daten vorbereiten
+            csv_data = []
+            
+            # Alle Konten mit Namen und Gruppierungen sammeln
+            all_accounts = set(self.account_names.keys()) | set(self.account_mappings.keys())
+            
+            for account_nr in sorted(all_accounts):
+                account_name = self.account_names.get(account_nr, "")
+                bwa_group = self.account_mappings.get(account_nr, "")
+                
+                # Nur Konten mit mindestens einem Namen oder einer Gruppe exportieren
+                if account_name or bwa_group:
+                    csv_data.append({
+                        'Sachkontonr.': account_nr,
+                        'Sachkonto': account_name,
+                        'BWA-Gruppe': bwa_group
+                    })
+            
+            # CSV-Datei schreiben
+            if csv_data:
+                with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                    fieldnames = ['Sachkontonr.', 'Sachkonto', 'BWA-Gruppe']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';')
+                    
+                    # Header schreiben
+                    writer.writeheader()
+                    
+                    # Daten schreiben
+                    for row in csv_data:
+                        writer.writerow(row)
+                
+                QMessageBox.information(
+                    self,
+                    "Export erfolgreich",
+                    f"BWA-Gruppierungen wurden erfolgreich exportiert.\n\n"
+                    f"Datei: {file_path}\n"
+                    f"Einträge: {len(csv_data)}"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Keine Daten",
+                    "Keine BWA-Gruppierungen zum Exportieren gefunden."
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Export-Fehler",
+                f"Fehler beim Exportieren der BWA-Gruppierungen:\n{str(e)}"
+            )
+    
+    def import_mappings_from_csv(self):
+        """Importiert BWA-Gruppierungen aus einer CSV-Datei"""
+        try:
+            # Datei-Dialog öffnen
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "BWA-Gruppierungen importieren",
+                "",
+                "CSV-Dateien (*.csv)"
+            )
+            
+            if not file_path:
+                return  # Benutzer hat abgebrochen
+            
+            # Bestätigung vor Import
+            reply = QMessageBox.question(
+                self,
+                "Import bestätigen",
+                "Möchten Sie die BWA-Gruppierungen importieren?\n\n"
+                "Hinweis: Bestehende Zuordnungen werden überschrieben, "
+                "wenn die Sachkontonummer bereits existiert.",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply != QMessageBox.Yes:
+                return
+            
+            # CSV-Datei einlesen
+            imported_count = 0
+            skipped_count = 0
+            
+            with open(file_path, 'r', encoding='utf-8') as csvfile:
+                # Detect delimiter (try both ; and ,)
+                sample = csvfile.read(1024)
+                csvfile.seek(0)
+                
+                if sample.count(';') > sample.count(','):
+                    delimiter = ';'
+                else:
+                    delimiter = ','
+                
+                reader = csv.DictReader(csvfile, delimiter=delimiter)
+                
+                # Erwartete Spalten prüfen
+                expected_columns = ['Sachkontonr.', 'Sachkonto', 'BWA-Gruppe']
+                if not all(col in reader.fieldnames for col in expected_columns):
+                    QMessageBox.warning(
+                        self,
+                        "Ungültige CSV-Datei",
+                        f"Die CSV-Datei muss folgende Spalten enthalten:\n"
+                        f"{', '.join(expected_columns)}\n\n"
+                        f"Gefundene Spalten: {', '.join(reader.fieldnames or [])}"
+                    )
+                    return
+                
+                # Daten importieren
+                for row in reader:
+                    sachkontonr = str(row.get('Sachkontonr.', '')).strip()
+                    sachkonto = row.get('Sachkonto', '').strip()
+                    bwa_gruppe = row.get('BWA-Gruppe', '').strip()
+                    
+                    if not sachkontonr:
+                        skipped_count += 1
+                        continue
+                    
+                    # Kontonummer normalisieren
+                    normalized_account = self.normalize_account_number(sachkontonr)
+                    if not normalized_account:
+                        skipped_count += 1
+                        continue
+                    
+                    # Kontoname importieren (falls vorhanden)
+                    if sachkonto:
+                        self.account_names[normalized_account] = sachkonto
+                    
+                    # BWA-Gruppe importieren (falls vorhanden)
+                    if bwa_gruppe:
+                        self.account_mappings[normalized_account] = bwa_gruppe
+                    
+                    imported_count += 1
+            
+            # Einstellungen speichern
+            self.save_settings()
+            
+            # Anzeige aktualisieren
+            self.refresh_account_list_display()
+            
+            # Signal senden dass sich Mappings geändert haben
+            self.mappings_changed.emit()
+            
+            # Erfolgsmeldung
+            message = f"Import erfolgreich abgeschlossen!\n\n"
+            message += f"Importiert: {imported_count} Einträge\n"
+            if skipped_count > 0:
+                message += f"Übersprungen: {skipped_count} Einträge"
+            
+            QMessageBox.information(self, "Import erfolgreich", message)
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Import-Fehler",
+                f"Fehler beim Importieren der BWA-Gruppierungen:\n{str(e)}"
+            )
+    
+    def refresh_account_list_display(self):
+        """Aktualisiert die Anzeige aller Elemente in der Kontenliste"""
+        for i in range(self.accounts_list.count()):
+            item = self.accounts_list.item(i)
+            if item:
+                # Kontonummer aus dem aktuellen Text extrahieren
+                account_text = item.text()
+                account_number = str(account_text.split(" →")[0].split(" -")[0].strip())
+                self.update_account_item_display(item, account_number)

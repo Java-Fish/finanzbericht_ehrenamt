@@ -19,12 +19,8 @@ from PySide6.QtCore import QSettings
 from datetime import datetime, date
 from typing import Dict, List, Optional
 import os
-import tempfile
 import json
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import io
 
 
 class BWAPDFGenerator:
@@ -344,6 +340,13 @@ class BWAPDFGenerator:
             # Account-Mappings und Super-Group-Mappings laden
             super_group_mappings = self._load_super_group_mappings()
             
+            # Account-Namen aus QSettings laden
+            account_names = {}
+            settings.beginGroup("account_names")
+            for key in settings.allKeys():
+                account_names[key] = settings.value(key, "")
+            settings.endGroup()
+            
             # JSON-Datenstruktur aufbauen
             json_data = {
                 "metadata": {
@@ -358,6 +361,7 @@ class BWAPDFGenerator:
                 "organization": self._get_organization_data(),
                 "balance_info": self._get_balance_info(csv_processor),
                 "account_mappings": account_mappings if account_mappings else {},
+                "account_names": account_names if account_names else {},
                 "super_group_mappings": super_group_mappings if super_group_mappings else {},
                 "yearly_summary": self._get_yearly_summary_data(csv_processor, account_mappings),
                 "quarterly_summaries": [],
@@ -421,7 +425,18 @@ class BWAPDFGenerator:
         if year_data.empty:
             return {"summary": {}, "total": 0.0}
         
-        summary = self._create_year_summary(year_data, account_mappings)
+        # Account-Namen aus QSettings laden
+        settings = QSettings()
+        account_names = {}
+        settings.beginGroup("account_names")
+        for key in settings.allKeys():
+            account_names[key] = settings.value(key, "")
+        settings.endGroup()
+        
+        # Detaillierte Zusammenfassung erstellen
+        detailed_summary = self._create_detailed_year_summary(year_data, account_mappings, account_names)
+        summary = detailed_summary.get('summary', {})
+        detailed_accounts = detailed_summary.get('detailed_accounts', {})
         total = sum(summary.values()) if summary else 0.0
         
         # Obergruppen-Zuordnung hinzufügen
@@ -437,6 +452,7 @@ class BWAPDFGenerator:
         return {
             "summary": grouped_summary,
             "bwa_groups": {k: float(v) for k, v in summary.items()},
+            "detailed_accounts": detailed_accounts,
             "total": float(total)
         }
     
@@ -447,7 +463,18 @@ class BWAPDFGenerator:
         if quarter_data.empty:
             return None
         
-        summary = self._create_quarter_summary(quarter_data, account_mappings)
+        # Account-Namen aus QSettings laden
+        settings = QSettings()
+        account_names = {}
+        settings.beginGroup("account_names")
+        for key in settings.allKeys():
+            account_names[key] = settings.value(key, "")
+        settings.endGroup()
+        
+        # Detaillierte Zusammenfassung erstellen
+        detailed_summary = self._create_detailed_quarter_summary(quarter_data, account_mappings, account_names)
+        summary = detailed_summary.get('summary', {})
+        detailed_accounts = detailed_summary.get('detailed_accounts', {})
         total = sum(summary.values()) if summary else 0.0
         
         # Kontostandsberechnung
@@ -469,6 +496,7 @@ class BWAPDFGenerator:
             "quarter": quarter,
             "summary": grouped_summary,
             "bwa_groups": {k: float(v) for k, v in summary.items()},
+            "detailed_accounts": detailed_accounts,
             "total": float(total),
             "balance_info": {
                 "opening_balance": float(opening_balance),
@@ -750,9 +778,17 @@ class BWAPDFGenerator:
             elements.append(Paragraph("Keine Daten für dieses Quartal verfügbar.", self.normal_style))
             return elements
             
-        # BWA-Tabelle erstellen
-        summary = self._create_quarter_summary(quarter_data, account_mappings)
-        table = self._create_bwa_table(summary, f"Q{quarter}")
+        # Account-Namen aus QSettings laden
+        settings = QSettings()
+        account_names = {}
+        settings.beginGroup("account_names")
+        for key in settings.allKeys():
+            account_names[key] = settings.value(key, "")
+        settings.endGroup()
+        
+        # Detaillierte BWA-Tabelle erstellen
+        detailed_summary = self._create_detailed_quarter_summary(quarter_data, account_mappings, account_names)
+        table = self._create_detailed_bwa_table(detailed_summary, f"Q{quarter}")
         
         if table:
             elements.append(table)
@@ -786,11 +822,12 @@ class BWAPDFGenerator:
         chart_enabled = self.settings.value("generate_chart_report", True, type=bool)
         if chart_enabled:
             elements.append(Spacer(1, 1*cm))
-            chart_title = Paragraph("<b>Obergruppen-Übersicht</b>", self.group_style)
+            chart_title = Paragraph("<b>BWA-Gruppen-Übersicht</b>", self.group_style)
             elements.append(chart_title)
             elements.append(Spacer(1, 0.5*cm))
             
-            chart = self._create_supergroup_bar_chart(summary, f"Q{quarter}")
+            summary = detailed_summary.get('summary', {})
+            chart = self._create_bwa_group_bar_chart(summary, f"Q{quarter}")
             if chart is not None:
                 elements.append(chart)
             
@@ -813,9 +850,17 @@ class BWAPDFGenerator:
             elements.append(Paragraph("Keine Daten für das Jahr verfügbar.", self.normal_style))
             return elements
             
-        # BWA-Tabelle erstellen
-        summary = self._create_year_summary(year_data, account_mappings)
-        table = self._create_bwa_table(summary, "Jahr")
+        # Account-Namen aus QSettings laden
+        settings = QSettings()
+        account_names = {}
+        settings.beginGroup("account_names")
+        for key in settings.allKeys():
+            account_names[key] = settings.value(key, "")
+        settings.endGroup()
+        
+        # Detaillierte BWA-Tabelle erstellen
+        detailed_summary = self._create_detailed_year_summary(year_data, account_mappings, account_names)
+        table = self._create_detailed_bwa_table(detailed_summary, "Jahr")
         
         if table:
             elements.append(table)
@@ -845,11 +890,12 @@ class BWAPDFGenerator:
         chart_enabled = self.settings.value("generate_chart_report", True, type=bool)
         if chart_enabled:
             elements.append(Spacer(1, 1*cm))
-            chart_title = Paragraph("<b>Obergruppen-Übersicht</b>", self.group_style)
+            chart_title = Paragraph("<b>BWA-Gruppen-Übersicht</b>", self.group_style)
             elements.append(chart_title)
             elements.append(Spacer(1, 0.5*cm))
             
-            chart = self._create_supergroup_bar_chart(summary, "Jahr")
+            summary = detailed_summary.get('summary', {})
+            chart = self._create_bwa_group_bar_chart(summary, "Jahr")
             if chart is not None:
                 elements.append(chart)
             
@@ -993,10 +1039,51 @@ class BWAPDFGenerator:
             summary[group] += amount
             
         return summary
+    
+    def _create_detailed_quarter_summary(self, quarter_data, account_mappings: Dict[str, str], account_names: Dict[str, str] = None) -> Dict:
+        """Erstellt detaillierte Zusammenfassung für ein Quartal mit einzelnen Sachkonten"""
+        summary = {}
+        detailed_accounts = {}  # {bwa_group: {account: {'name': str, 'amount': float}}}
+        
+        if account_names is None:
+            account_names = {}
+        
+        # Gruppiert nach BWA-Gruppen und sammelt Sachkonto-Details
+        for _, row in quarter_data.iterrows():
+            account = str(row['Sachkontonr.'])
+            amount = row['Betrag_Clean']
+            
+            group = account_mappings.get(account, f"Nicht zugeordnet ({account})")
+            account_name = account_names.get(account, f"Sachkonto {account}")
+            
+            # BWA-Gruppen-Summe
+            if group not in summary:
+                summary[group] = 0.0
+                detailed_accounts[group] = {}
+            
+            summary[group] += amount
+            
+            # Sachkonto-Details sammeln
+            if account not in detailed_accounts[group]:
+                detailed_accounts[group][account] = {
+                    'name': account_name,
+                    'amount': 0.0
+                }
+            
+            detailed_accounts[group][account]['amount'] += amount
+            
+        return {
+            'summary': summary,
+            'detailed_accounts': detailed_accounts
+        }
         
     def _create_year_summary(self, year_data, account_mappings: Dict[str, str]) -> Dict[str, float]:
         """Erstellt Zusammenfassung für das Jahr"""
         return self._create_quarter_summary(year_data, account_mappings)
+    
+    def _create_detailed_year_summary(self, year_data, account_mappings: Dict[str, str], account_names: Dict[str, str] = None) -> Dict:
+        """Erstellt detaillierte Zusammenfassung für das Jahr mit einzelnen Sachkonten"""
+        return self._create_detailed_quarter_summary(year_data, account_mappings, account_names)
         
     def _create_bwa_table(self, summary: Dict[str, float], period: str) -> Optional[Table]:
         """Erstellt eine formatierte BWA-Tabelle mit Obergruppen-Struktur"""
@@ -1145,6 +1232,197 @@ class BWAPDFGenerator:
         table.setStyle(TableStyle(all_styles))
         
         return table
+    
+    def _create_detailed_bwa_table(self, detailed_summary: Dict, period: str) -> Optional[Table]:
+        """Erstellt eine detaillierte BWA-Tabelle mit Obergruppen, BWA-Gruppen und Sachkonten"""
+        if not detailed_summary or 'summary' not in detailed_summary:
+            return None
+            
+        summary = detailed_summary['summary']
+        detailed_accounts = detailed_summary.get('detailed_accounts', {})
+        
+        # Obergruppen-Mappings laden
+        super_group_mappings = self._load_super_group_mappings()
+        
+        # Daten nach Obergruppen organisieren
+        super_groups = {}  # {super_group: {bwa_group: amount}}
+        
+        for bwa_group, amount in summary.items():
+            super_group = super_group_mappings.get(bwa_group, "Nicht zugeordnet")
+            
+            if super_group not in super_groups:
+                super_groups[super_group] = {}
+            super_groups[super_group][bwa_group] = amount
+        
+        # Tabellendaten vorbereiten
+        table_data = [['Obergruppe / BWA-Gruppe', f'Betrag {period}']]
+        
+        # Obergruppen sortiert anzeigen
+        total_overall = 0.0
+        row_index = 1  # Start nach Header
+        style_commands = []
+        
+        # Dezente Farben für Obergruppen
+        super_group_colors = [
+            colors.Color(0.95, 0.95, 1.0),    # Sehr helles Blau
+            colors.Color(0.95, 1.0, 0.95),    # Sehr helles Grün  
+            colors.Color(1.0, 0.98, 0.9),     # Sehr helles Gelb
+            colors.Color(1.0, 0.95, 0.95),    # Sehr helles Rosa
+            colors.Color(0.98, 0.95, 1.0),    # Sehr helles Lila
+            colors.Color(0.95, 1.0, 1.0),     # Sehr helles Cyan
+            colors.Color(1.0, 1.0, 0.95),     # Cremeweiß
+            colors.Color(0.97, 0.97, 0.97),   # Sehr helles Grau
+        ]
+        
+        color_index = 0
+        
+        for super_group in sorted(super_groups.keys()):
+            bwa_groups = super_groups[super_group]
+            super_group_total = sum(bwa_groups.values())
+            
+            # Obergruppen-Header mit formatiertem Betrag
+            super_group_total_str = self._format_amount(super_group_total)
+            table_data.append([super_group, super_group_total_str])
+            
+            # Farbe für diese Obergruppe
+            bg_color = super_group_colors[color_index % len(super_group_colors)]
+            
+            # Styling für Obergruppen-Header
+            style_commands.extend([
+                ('BACKGROUND', (0, row_index), (-1, row_index), bg_color),
+                ('FONTNAME', (0, row_index), (-1, row_index), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, row_index), (-1, row_index), 11),
+                ('TOPPADDING', (0, row_index), (-1, row_index), 8),
+                ('BOTTOMPADDING', (0, row_index), (-1, row_index), 8),
+            ])
+            
+            # Textfarbe für Obergruppen-Summe (rot bei negativ)
+            if super_group_total < 0:
+                style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.red))
+            else:
+                style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.black))
+            
+            row_index += 1
+            
+            # BWA-Gruppen innerhalb der Obergruppe
+            for bwa_group in sorted(bwa_groups.keys()):
+                bwa_group_amount = bwa_groups[bwa_group]
+                bwa_group_amount_str = self._format_amount(bwa_group_amount)
+                
+                table_data.append([f"  • {bwa_group}", bwa_group_amount_str])
+                
+                # Hintergrundfarbe für BWA-Gruppe (heller als Obergruppe)
+                lighter_color = colors.Color(
+                    min(1.0, bg_color.red + 0.03),
+                    min(1.0, bg_color.green + 0.03), 
+                    min(1.0, bg_color.blue + 0.03)
+                )
+                style_commands.append(('BACKGROUND', (0, row_index), (-1, row_index), lighter_color))
+                
+                # Textfarbe für BWA-Gruppen-Betrag (rot bei negativ)
+                if bwa_group_amount < 0:
+                    style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.red))
+                else:
+                    style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.black))
+                
+                row_index += 1
+                
+                # Sachkonten unter dieser BWA-Gruppe anzeigen
+                if bwa_group in detailed_accounts:
+                    accounts = detailed_accounts[bwa_group]
+                    
+                    # Sachkonten nach Betrag sortieren (größte zuerst)
+                    sorted_accounts = sorted(accounts.items(), 
+                                           key=lambda x: abs(x[1]['amount']), 
+                                           reverse=True)
+                    
+                    for account_nr, account_data in sorted_accounts:
+                        account_name = account_data['name']
+                        account_amount = account_data['amount']
+                        account_amount_str = self._format_amount(account_amount)
+                        
+                        # Sachkonto-Name kürzen falls zu lang
+                        display_name = account_name
+                        if len(display_name) > 45:
+                            display_name = display_name[:42] + "..."
+                        
+                        table_data.append([f"    {account_nr}: {display_name}", account_amount_str])
+                        
+                        # Noch hellere Hintergrundfarbe für Sachkonten
+                        account_color = colors.Color(
+                            min(1.0, lighter_color.red + 0.02),
+                            min(1.0, lighter_color.green + 0.02), 
+                            min(1.0, lighter_color.blue + 0.02)
+                        )
+                        style_commands.append(('BACKGROUND', (0, row_index), (-1, row_index), account_color))
+                        
+                        # Kleinere Schrift für Sachkonten
+                        style_commands.append(('FONTSIZE', (0, row_index), (-1, row_index), 9))
+                        
+                        # Textfarbe für Sachkonto-Betrag (rot bei negativ)
+                        if account_amount < 0:
+                            style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.red))
+                        else:
+                            style_commands.append(('TEXTCOLOR', (1, row_index), (1, row_index), colors.black))
+                        
+                        row_index += 1
+            
+            # Leerzeile nach jeder Obergruppe
+            table_data.append(['', ''])
+            style_commands.append(('BACKGROUND', (0, row_index), (-1, row_index), colors.white))
+            row_index += 1
+            
+            total_overall += super_group_total
+            color_index += 1
+        
+        # Gesamtergebnis
+        if super_groups:
+            result_str = self._format_amount(total_overall)
+            
+            table_data.append(['', ''])  # Extra Leerzeile
+            table_data.append([f'GESAMTERGEBNIS {period.upper()}', result_str])
+            
+            # Styling für Gesamtergebnis
+            style_commands.extend([
+                ('BACKGROUND', (0, row_index + 1), (-1, row_index + 1), colors.Color(0.9, 0.9, 0.9)),
+                ('FONTNAME', (0, row_index + 1), (-1, row_index + 1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, row_index + 1), (-1, row_index + 1), 12),
+                ('TOPPADDING', (0, row_index + 1), (-1, row_index + 1), 10),
+                ('BOTTOMPADDING', (0, row_index + 1), (-1, row_index + 1), 10),
+            ])
+            
+            # Textfarbe für Gesamtergebnis (rot bei negativ)
+            if total_overall < 0:
+                style_commands.append(('TEXTCOLOR', (1, row_index + 1), (1, row_index + 1), colors.red))
+            else:
+                style_commands.append(('TEXTCOLOR', (1, row_index + 1), (1, row_index + 1), colors.black))
+        
+        # Tabelle erstellen
+        table = Table(table_data, colWidths=[12*cm, 5*cm])
+        
+        # Basis-Styling
+        base_style = [
+            # Header
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.2)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 15),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.Color(0.7, 0.7, 0.7)),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]
+        
+        # Alle Styling-Kommandos kombinieren
+        all_styles = base_style + style_commands
+        table.setStyle(TableStyle(all_styles))
+        
+        return table
         
     def _format_amount(self, amount: float) -> str:
         """Formatiert einen Betrag mit deutscher Zahlendarstellung"""
@@ -1164,103 +1442,180 @@ class BWAPDFGenerator:
         
         # Daten für das Diagramm sammeln
         accounts = csv_processor.get_account_numbers()
-        chart_data = []
+        chart_data = {}
         
+        # Für jedes Sachkonto den Gesamtsaldo berechnen
         for account in accounts:
-            # Jahressaldo für das Konto ermitteln
-            year_data = csv_processor.get_data_by_quarter(5)  # Gesamtjahr
-            if account in year_data:
-                balance = year_data[account]
-                account_name = csv_processor.get_account_name(account) or f"Konto {account}"
-                chart_data.append({
-                    'account': account,
-                    'name': account_name,
-                    'balance': balance
-                })
+            account_data = csv_processor.get_data_by_account(account)
+            if not account_data.empty:
+                # Sicherstellen, dass Beträge numerisch sind
+                try:
+                    total_balance = float(account_data['Betrag'].sum())
+                except (ValueError, TypeError):
+                    # Falls das fehlschlägt, bereinige die Daten (entferne € und ersetze , durch .)
+                    amounts = account_data['Betrag'].astype(str)
+                    amounts = amounts.str.replace('€', '').str.replace(',', '.').str.strip()
+                    numeric_amounts = pd.to_numeric(amounts, errors='coerce')
+                    total_balance = float(numeric_amounts.sum())
+                
+                account_name = csv_processor.get_account_name(account)
+                
+                # Sachkonto-Namen aus QSettings holen falls vorhanden
+                settings = QSettings()
+                stored_name = settings.value(f"account_names/{account}", "")
+                if stored_name:
+                    account_name = stored_name
+                
+                # Display-Name erstellen
+                display_name = f"{account}: {account_name}" if account_name else f"Konto {account}"
+                chart_data[display_name] = total_balance
         
-        # Nach Betrag sortieren (größte zuerst)
-        chart_data.sort(key=lambda x: abs(x['balance']), reverse=True)
+        # Leeren Text hinzufügen falls keine Daten
+        if not chart_data:
+            no_data_text = Paragraph("Keine Sachkontendaten verfügbar", self.normal_style)
+            story.append(no_data_text)
+            return story
         
         # Balkendiagramm erstellen
-        chart_image = self._create_balance_chart(chart_data)
-        if chart_image:
-            story.append(chart_image)
+        chart = self._create_account_balance_chart(chart_data)
+        if chart:
+            story.append(chart)
+        else:
+            error_text = Paragraph("Fehler beim Erstellen des Balkendiagramms", self.normal_style)
+            story.append(error_text)
         
         return story
     
-    def _create_balance_chart(self, chart_data: List[Dict]) -> Optional[Image]:
-        """Erstellt ein horizontales Balkendiagramm für Kontosalden"""
-        if not chart_data:
-            return None
-        
+    def _create_account_balance_chart(self, account_data: Dict[str, float]) -> Optional[Drawing]:
+        """Erstellt ein horizontales Balkendiagramm für Sachkonto-Salden"""
         try:
-            # Matplotlib-Stil setzen (kompatibel)
-            plt.rcParams.update({'font.size': 10, 'figure.facecolor': 'white'})
+            # Wenn keine Daten vorhanden sind
+            if not account_data:
+                return None
             
-            # Figure erstellen
-            fig, ax = plt.subplots(figsize=(12, max(8, len(chart_data) * 0.4)))
-            fig.patch.set_facecolor('white')
+            # Nach Betrag sortieren (größte absolute Werte zuerst)
+            sorted_accounts = sorted(account_data.items(), 
+                                   key=lambda x: abs(x[1]), reverse=True)
             
-            # Daten vorbereiten
-            accounts = [f"{item['account']} - {item['name']}" if item['name'] else f"Konto {item['account']}" for item in chart_data]
-            balances = [item['balance'] for item in chart_data]
+            # ALLE Konten anzeigen (nicht mehr auf 20 begrenzen)
             
-            # Farben basierend auf Vorzeichen
-            colors = ['#28a745' if balance >= 0 else '#dc3545' for balance in balances]
+            # Diagramm-Dimensionen (dynamisch basierend auf Anzahl Konten)
+            chart_width = 16 * cm
+            chart_height = max(8 * cm, len(sorted_accounts) * 0.5 * cm)
+            drawing = Drawing(chart_width, chart_height)
             
-            # Horizontales Balkendiagramm
-            bars = ax.barh(accounts, balances, color=colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+            # Skalierung für große Ausreißer optimieren
+            amounts = [abs(amount) for _, amount in sorted_accounts]
             
-            # Achsen-Formatierung
-            ax.set_xlabel('Saldo (€)', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Sachkonten', fontsize=12, fontweight='bold')
-            ax.set_title('Sachkonten-Salden im Überblick', fontsize=14, fontweight='bold', pad=20)
+            # Outlier-Erkennung: Werte die 3x größer als der Median sind
+            median_amount = sorted(amounts)[len(amounts)//2] if amounts else 1
+            outlier_threshold = median_amount * 3
+            max_amount = median_amount * 4  # Maximale Skalierung begrenzen
             
-            # X-Achse formatieren (Euro-Beträge)
-            ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f} €'.replace(',', '.')))
+            # Zeichenbereich definieren
+            left_margin = 5.5 * cm  # Mehr Platz für Sachkonto-Namen und Zickzack-Linien
+            right_margin = 2.5 * cm  # Mehr Platz für Beträge und Asterisk-Markierungen
+            bar_area_width = chart_width - left_margin - right_margin  # 8 cm für Balken
+            bar_height = 0.4 * cm
+            bar_spacing = 0.5 * cm
             
-            # Nulllinie hervorheben
-            ax.axvline(x=0, color='black', linestyle='-', linewidth=1)
+            # Mittellinie (0€-Linie)
+            center_x = left_margin + bar_area_width / 2
             
-            # Grid anpassen
-            ax.grid(True, axis='x', alpha=0.3)
-            ax.set_axisbelow(True)
+            # Balken zeichnen
+            y_pos = chart_height - left_margin - bar_height
             
-            # Layout optimieren
-            plt.tight_layout()
-            
-            # Werte auf den Balken anzeigen
-            for i, (bar, balance) in enumerate(zip(bars, balances)):
-                if balance != 0:
-                    # Position für Text bestimmen
-                    x_pos = balance + (max(balances) - min(balances)) * 0.01 if balance >= 0 else balance - (max(balances) - min(balances)) * 0.01
-                    ha = 'left' if balance >= 0 else 'right'
+            for account_name, amount in sorted_accounts:
+                abs_amount = abs(amount)
+                is_outlier = abs_amount > outlier_threshold
+                
+                # Balkenbreite berechnen (begrenzt für Outlier)
+                display_amount = min(abs_amount, max_amount)
+                bar_width = (display_amount / max_amount) * (bar_area_width / 2)
+                
+                # Farbe bestimmen
+                if amount >= 0:
+                    bar_color = green
+                    bar_x = center_x  # Positive Balken nach rechts
+                else:
+                    bar_color = red
+                    bar_x = center_x - bar_width  # Negative Balken nach links
+                
+                # Balken zeichnen
+                rect = Rect(bar_x, y_pos, bar_width, bar_height,
+                           fillColor=bar_color, strokeColor=bar_color)
+                drawing.add(rect)
+                
+                # Outlier-Kennzeichnung: Zickzack-Linie am Ende des Balkens
+                if is_outlier:
+                    # Zickzack-Linie für gekürzten Balken
+                    zigzag_x = bar_x + bar_width if amount >= 0 else bar_x
+                    zigzag_y = y_pos + bar_height/2
                     
-                    # Formatierter Betrag
-                    formatted_balance = f'{balance:,.0f} €'.replace(',', '.')
-                    ax.text(x_pos, i, formatted_balance, ha=ha, va='center', fontweight='bold', fontsize=9)
+                    # Kleine Zickzack-Linien
+                    for i in range(3):
+                        x_offset = (-0.1 + i * 0.05) * cm if amount < 0 else (0.05 + i * 0.05) * cm
+                        y_offset1 = -0.05 * cm if i % 2 == 0 else 0.05 * cm
+                        y_offset2 = 0.05 * cm if i % 2 == 0 else -0.05 * cm
+                        
+                        zigzag_line1 = Line(zigzag_x + x_offset, zigzag_y + y_offset1,
+                                          zigzag_x + x_offset + 0.02*cm, zigzag_y + y_offset2,
+                                          strokeColor=black, strokeWidth=1)
+                        drawing.add(zigzag_line1)
+                
+                # Label links vom Balken (Sachkonto-Name)
+                label_x = left_margin - 0.3 * cm  # Mehr Abstand zum Balken
+                label_text = account_name
+                if len(label_text) > 45:  # Längere Sachkonto-Namen erlauben
+                    label_text = label_text[:42] + "..."
+                
+                label = String(label_x, y_pos + bar_height/2 - 0.1*cm, 
+                              label_text, fontSize=8, textAnchor='end')
+                drawing.add(label)
+                
+                # Wert rechts vom Balken (mit Outlier-Kennzeichnung)
+                value_x = left_margin + bar_area_width + 0.2 * cm  # Mehr Abstand zum Balken
+                value_text = self._format_amount(amount)
+                if is_outlier:
+                    value_text += " *"  # Asterisk für gekürzte Balken
+                
+                value = String(value_x, y_pos + bar_height/2 - 0.1*cm,
+                              value_text, fontSize=8, textAnchor='start')
+                drawing.add(value)
+                
+                y_pos -= bar_spacing
             
-            # Als Bytes speichern
-            img_buffer = io.BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
-            img_buffer.seek(0)
+            # Mittellinie (0€-Linie) zeichnen
+            zero_line = Line(center_x, left_margin, center_x, chart_height - left_margin,
+                           strokeColor=black, strokeWidth=1)
+            drawing.add(zero_line)
             
-            # Temporäre Datei für ReportLab
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-            temp_file.write(img_buffer.read())
-            temp_file.close()
+            # 0€ Label unter dem Diagramm
+            zero_label_y = left_margin - 0.7*cm
+            zero_label = String(center_x, zero_label_y, "0€", 
+                              fontSize=9, textAnchor='middle')
+            drawing.add(zero_label)
             
-            # ReportLab Image erstellen
-            image = Image(temp_file.name, width=18*cm, height=12*cm)
+            # Legende für gekürzte Balken
+            outliers_count = sum(1 for _, amount in sorted_accounts if abs(amount) > outlier_threshold)
+            if outliers_count > 0:
+                legend_y = chart_height - 0.5*cm
+                legend_text = f"* = Balken gekürzt (Skalierung begrenzt) - {outliers_count} Ausreißer"
+                legend_label = String(chart_width/2, legend_y, legend_text, 
+                                    fontSize=8, textAnchor='middle')
+                drawing.add(legend_label)
             
-            # Aufräumen
-            plt.close(fig)
-            img_buffer.close()
+            # Info-Text für Anzahl Konten
+            info_y = chart_height - (0.8*cm if outliers_count > 0 else 0.5*cm)
+            info_text = f"Alle {len(sorted_accounts)} Sachkonten (nach Betragshöhe sortiert)"
+            info_label = String(chart_width/2, info_y, info_text, 
+                              fontSize=8, textAnchor='middle')
+            drawing.add(info_label)
             
-            return image
+            return drawing
             
         except Exception as e:
-            print(f"Fehler beim Erstellen des Diagramms: {e}")
+            print(f"Fehler beim Erstellen des Sachkonto-Balkendiagramms: {e}")
             return None
     
     def _create_supergroup_bar_chart(self, summary: Dict[str, float], period: str) -> Optional[Drawing]:
@@ -1359,4 +1714,94 @@ class BWAPDFGenerator:
             
         except Exception as e:
             print(f"Fehler beim Erstellen des Balkendiagramms: {e}")
+            return None
+
+    def _create_bwa_group_bar_chart(self, summary: Dict[str, float], period: str) -> Optional[Drawing]:
+        """Erstellt ein horizontales Balkendiagramm der BWA-Gruppen"""
+        try:
+            # BWA-Gruppen direkt aus dem Summary verwenden
+            bwa_groups = summary.copy()
+            
+            # Wenn keine Daten vorhanden sind
+            if not bwa_groups:
+                return None
+            
+            # Sortiere nach Betrag (größte positive zuerst, dann negative)
+            sorted_groups = sorted(bwa_groups.items(), 
+                                 key=lambda x: x[1], reverse=True)
+            
+            # Diagramm-Dimensionen (optimiert für maximale Platznutzung)
+            chart_width = 16 * cm  # Zurück zu 16cm für bessere Platznutzung
+            chart_height = max(4 * cm, len(sorted_groups) * 0.8 * cm)
+            drawing = Drawing(chart_width, chart_height)
+            
+            # Maximalen Betrag finden für Skalierung
+            max_amount = max(abs(amount) for _, amount in sorted_groups) if sorted_groups else 1
+            if max_amount == 0:
+                max_amount = 1
+            
+            # Zeichenbereich definieren (optimiert für maximale Balkenbreite)
+            left_margin = 3.5 * cm  # Genug Platz für BWA-Gruppennamen links
+            right_margin = 1.5 * cm  # Kompakter rechter Rand für Beträge
+            bar_area_width = chart_width - left_margin - right_margin  # 11 cm für Balken
+            bar_height = 0.6 * cm
+            bar_spacing = 0.8 * cm
+            
+            # Mittellinie (0€-Linie)
+            center_x = left_margin + bar_area_width / 2
+            
+            # Balken zeichnen
+            y_pos = chart_height - left_margin - bar_height
+            
+            for bwa_group, amount in sorted_groups:
+                # Balkenbreite berechnen (proportional zum Betrag)
+                bar_width = (abs(amount) / max_amount) * (bar_area_width / 2)
+                
+                # Farbe bestimmen
+                if amount >= 0:
+                    bar_color = green
+                    bar_x = center_x  # Positive Balken nach rechts
+                else:
+                    bar_color = red
+                    bar_x = center_x - bar_width  # Negative Balken nach links
+                
+                # Balken zeichnen
+                rect = Rect(bar_x, y_pos, bar_width, bar_height,
+                           fillColor=bar_color, strokeColor=bar_color)
+                drawing.add(rect)
+                
+                # Label links vom Balken (BWA-Gruppenname)
+                label_x = left_margin - 0.2 * cm
+                label_text = f"{bwa_group}"
+                if len(label_text) > 35:  # Noch längere Namen erlauben
+                    label_text = label_text[:32] + "..."
+                
+                label = String(label_x, y_pos + bar_height/2 - 0.1*cm, 
+                              label_text, fontSize=9, textAnchor='end')
+                drawing.add(label)
+                
+                # Wert rechts vom Balken (kompakter positioniert)
+                value_x = left_margin + bar_area_width + 0.1 * cm  # Näher an die Balken
+                value_text = self._format_amount(amount)
+                value = String(value_x, y_pos + bar_height/2 - 0.1*cm,
+                              value_text, fontSize=9, textAnchor='start')
+                drawing.add(value)
+                
+                y_pos -= bar_spacing
+            
+            # Mittellinie (0€-Linie) zeichnen (nur im Diagrammbereich)
+            zero_line = Line(center_x, left_margin, center_x, chart_height - left_margin,
+                           strokeColor=black, strokeWidth=1)
+            drawing.add(zero_line)
+            
+            # 0€ Label deutlich unter dem Diagramm positionieren (außerhalb des Diagrammbereichs)
+            zero_label_y = left_margin - 0.7*cm  # Deutlich unter dem unteren Diagrammrand
+            zero_label = String(center_x, zero_label_y, "0€", 
+                              fontSize=9, textAnchor='middle')
+            drawing.add(zero_label)
+            
+            return drawing
+            
+        except Exception as e:
+            print(f"Fehler beim Erstellen des BWA-Gruppen-Balkendiagramms: {e}")
             return None

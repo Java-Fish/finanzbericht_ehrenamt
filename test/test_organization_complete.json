@@ -1,0 +1,287 @@
+{
+  "metadata": {
+    "export_date": "2025-08-12T14:46:33.449962",
+    "year": 2025,
+    "quarter_mode": "quarterly",
+    "generated_reports": {
+      "quarterly": true,
+      "account_details": true
+    }
+  },
+  "organization": {
+    "name": "Ehrenamt Testverein e.V.",
+    "street": "Musterstraße 42",
+    "zip": "12345",
+    "city": "Musterstadt",
+    "phone": "+49 123 456789",
+    "email": "kontakt@testverein.de",
+    "info": "Ein gemeinnütziger Verein für Test und Entwicklung"
+  },
+  "balance_info": {
+    "opening_balance": 2500.75,
+    "total_transactions": 279.25,
+    "closing_balance": 2780.0
+  },
+  "account_mappings": {
+    "1000": "Barmittel und Bankguthaben",
+    "2000": "Verbindlichkeiten aus Lieferungen",
+    "1500": "Forderungen aus Mitgliedsbeiträgen",
+    "4000": "Mitgliedsbeiträge und Spenden",
+    "8000": "Sonstige betriebliche Aufwendungen"
+  },
+  "account_names": {
+    "S00875": "Durchlaufende Posten Ausgaben",
+    "S00950": "Bankkonto 1",
+    "S02302": "Zuschüsse von Behörden",
+    "S02501": "Abschreibungen GWG",
+    "S02551": "Gehalt",
+    "S02552": "Personalkosten / Honorare",
+    "S02660": "Miete, Nebenkonten",
+    "S02664": "Reparaturen",
+    "S02701": "Büromaterial, Porto",
+    "S02702": "Telefon, IT",
+    "S02703": "Reisekosten",
+    "S02704": "Sonstige Kosten",
+    "S02705": "Projektkosten, Veranstaltungen",
+    "S02706": "Zeitschriften, Bücher",
+    "S02707": "Orchideen Ausgaben",
+    "S02708": "Honorare",
+    "S02709": "Beiträge",
+    "S02710": "NAJU",
+    "S02711": "Verwaltungskosten",
+    "S02712": "Ehrenamtspauschale",
+    "S02713": "Entomologie Ausgaben",
+    "S02715": "Waldwildnis",
+    "S02716": "Feldhamster Ausgaben",
+    "S02717": "Zackenschote",
+    "S02718": "Windknollen Ausgaben",
+    "S02719": "Ornithologie Ausgaben",
+    "S02720": "Wildvogelhilfe Ausgaben Allgemein",
+    "S02721": "Wildvogelhilfe Med. Behandlung",
+    "S02722": "Wildvogelhilfe Futterkosten",
+    "S02723": "Wildvogelhilfe Fahrtkosten",
+    "S02730": "Amphibien Ausgaben",
+    "S02740": "Vogelschlag",
+    "S02802": "Geschenke, Jubiläen, Ehrungen",
+    "S02810": "Repräsentationskosten",
+    "S02811": "Werbekosten",
+    "S03215": "Einnahmen Verein",
+    "S03216": "Mitgliedsbeiträge",
+    "S03217": "erhaltenes Honorar",
+    "S03218": "Spenden Windknollen",
+    "S03219": "Spenden Ornithologie",
+    "S03220": "Spenden NABU Jena",
+    "S03222": "Spenden Orchideenführung",
+    "S03223": "Spenden Wildvogelhilfe",
+    "S03224": "Förderung Naturschutzmacher*innen Fond",
+    "S03225": "Spenden Igelhilfe",
+    "S03226": "Spenden Amphibien",
+    "S03227": "Spenden Vogelschlag",
+    "S03251": "Bezahlte Spenden",
+    "S04712": "Nebenkosten des Geldverkehrs",
+    "S05070": "Einnahmen aus Verkauf",
+    "S06329": "Reinigungskosten",
+    "S06354": "Geringwertige Wirtschaftsgüter",
+    "S09000": "Saldovorträge Sachkonten"
+  },
+  "super_group_mappings": {},
+  "yearly_summary": {
+    "summary": {
+      "Nicht zugeordnet": {
+        "Barmittel und Bankguthaben": 50.0,
+        "Verbindlichkeiten aus Lieferungen": -75.5,
+        "Forderungen aus Mitgliedsbeiträgen": 100.0,
+        "Mitgliedsbeiträge und Spenden": 250.0,
+        "Sonstige betriebliche Aufwendungen": -45.25
+      }
+    },
+    "bwa_groups": {
+      "Barmittel und Bankguthaben": 50.0,
+      "Verbindlichkeiten aus Lieferungen": -75.5,
+      "Forderungen aus Mitgliedsbeiträgen": 100.0,
+      "Mitgliedsbeiträge und Spenden": 250.0,
+      "Sonstige betriebliche Aufwendungen": -45.25
+    },
+    "detailed_accounts": {
+      "Barmittel und Bankguthaben": {
+        "1000": {
+          "name": "Sachkonto 1000",
+          "amount": 50.0
+        }
+      },
+      "Verbindlichkeiten aus Lieferungen": {
+        "2000": {
+          "name": "Sachkonto 2000",
+          "amount": -75.5
+        }
+      },
+      "Forderungen aus Mitgliedsbeiträgen": {
+        "1500": {
+          "name": "Sachkonto 1500",
+          "amount": 100.0
+        }
+      },
+      "Mitgliedsbeiträge und Spenden": {
+        "4000": {
+          "name": "Sachkonto 4000",
+          "amount": 250.0
+        }
+      },
+      "Sonstige betriebliche Aufwendungen": {
+        "8000": {
+          "name": "Sachkonto 8000",
+          "amount": -45.25
+        }
+      }
+    },
+    "total": 279.25
+  },
+  "quarterly_summaries": [
+    {
+      "quarter": 1,
+      "summary": {
+        "Nicht zugeordnet": {
+          "Barmittel und Bankguthaben": 50.0,
+          "Verbindlichkeiten aus Lieferungen": -75.5,
+          "Forderungen aus Mitgliedsbeiträgen": 100.0
+        }
+      },
+      "bwa_groups": {
+        "Barmittel und Bankguthaben": 50.0,
+        "Verbindlichkeiten aus Lieferungen": -75.5,
+        "Forderungen aus Mitgliedsbeiträgen": 100.0
+      },
+      "detailed_accounts": {
+        "Barmittel und Bankguthaben": {
+          "1000": {
+            "name": "Sachkonto 1000",
+            "amount": 50.0
+          }
+        },
+        "Verbindlichkeiten aus Lieferungen": {
+          "2000": {
+            "name": "Sachkonto 2000",
+            "amount": -75.5
+          }
+        },
+        "Forderungen aus Mitgliedsbeiträgen": {
+          "1500": {
+            "name": "Sachkonto 1500",
+            "amount": 100.0
+          }
+        }
+      },
+      "total": 74.5,
+      "balance_info": {
+        "opening_balance": 2500.75,
+        "quarter_transactions": 74.5,
+        "quarter_end_balance": 2575.25
+      }
+    },
+    {
+      "quarter": 2,
+      "summary": {
+        "Nicht zugeordnet": {
+          "Mitgliedsbeiträge und Spenden": 250.0,
+          "Sonstige betriebliche Aufwendungen": -45.25
+        }
+      },
+      "bwa_groups": {
+        "Mitgliedsbeiträge und Spenden": 250.0,
+        "Sonstige betriebliche Aufwendungen": -45.25
+      },
+      "detailed_accounts": {
+        "Mitgliedsbeiträge und Spenden": {
+          "4000": {
+            "name": "Sachkonto 4000",
+            "amount": 250.0
+          }
+        },
+        "Sonstige betriebliche Aufwendungen": {
+          "8000": {
+            "name": "Sachkonto 8000",
+            "amount": -45.25
+          }
+        }
+      },
+      "total": 204.75,
+      "balance_info": {
+        "opening_balance": 2500.75,
+        "quarter_transactions": 204.75,
+        "quarter_end_balance": 2705.5
+      }
+    }
+  ],
+  "account_details": [
+    {
+      "account_number": "1000",
+      "account_name": "Kasse",
+      "total": 50.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "B001",
+          "date": "2024-01-15",
+          "purpose": "Beitrag Mitglied A",
+          "amount": 50.0
+        }
+      ]
+    },
+    {
+      "account_number": "1500",
+      "account_name": "Forderungen",
+      "total": 100.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "B003",
+          "date": "2024-03-10",
+          "purpose": "Spende erhalten",
+          "amount": 100.0
+        }
+      ]
+    },
+    {
+      "account_number": "2000",
+      "account_name": "Verbindlichkeiten",
+      "total": -75.5,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "B002",
+          "date": "2024-02-20",
+          "purpose": "Rechnungszahlung",
+          "amount": -75.5
+        }
+      ]
+    },
+    {
+      "account_number": "4000",
+      "account_name": "Einnahmen",
+      "total": 250.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "B004",
+          "date": "2024-04-05",
+          "purpose": "Veranstaltungserl√∂s",
+          "amount": 250.0
+        }
+      ]
+    },
+    {
+      "account_number": "8000",
+      "account_name": "Ausgaben",
+      "total": -45.25,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "B005",
+          "date": "2024-05-12",
+          "purpose": "Materialkosten",
+          "amount": -45.25
+        }
+      ]
+    }
+  ]
+}

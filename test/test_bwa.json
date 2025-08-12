@@ -1,0 +1,284 @@
+{
+  "metadata": {
+    "export_date": "2025-08-12T14:46:28.374294",
+    "year": 2025,
+    "quarter_mode": "quarterly",
+    "generated_reports": {
+      "quarterly": true,
+      "account_details": true
+    }
+  },
+  "organization": {
+    "name": "Test Organization",
+    "street": "Test Street 123",
+    "zip": "12345",
+    "city": "Test City",
+    "phone": "0123 456789",
+    "email": "test@example.org",
+    "info": "Test Organisation für Automatisierte Tests"
+  },
+  "balance_info": {
+    "opening_balance": 1000.0,
+    "total_transactions": 1929.25,
+    "closing_balance": 2929.25
+  },
+  "account_mappings": {
+    "4000": "Mitgliedsbeiträge",
+    "4100": "Spenden",
+    "6300": "Bürokosten",
+    "6400": "Miete",
+    "8100": "Veranstaltungskosten"
+  },
+  "account_names": {
+    "S00875": "Durchlaufende Posten Ausgaben",
+    "S00950": "Bankkonto 1",
+    "S02302": "Zuschüsse von Behörden",
+    "S02501": "Abschreibungen GWG",
+    "S02551": "Gehalt",
+    "S02552": "Personalkosten / Honorare",
+    "S02660": "Miete, Nebenkonten",
+    "S02664": "Reparaturen",
+    "S02701": "Büromaterial, Porto",
+    "S02702": "Telefon, IT",
+    "S02703": "Reisekosten",
+    "S02704": "Sonstige Kosten",
+    "S02705": "Projektkosten, Veranstaltungen",
+    "S02706": "Zeitschriften, Bücher",
+    "S02707": "Orchideen Ausgaben",
+    "S02708": "Honorare",
+    "S02709": "Beiträge",
+    "S02710": "NAJU",
+    "S02711": "Verwaltungskosten",
+    "S02712": "Ehrenamtspauschale",
+    "S02713": "Entomologie Ausgaben",
+    "S02715": "Waldwildnis",
+    "S02716": "Feldhamster Ausgaben",
+    "S02717": "Zackenschote",
+    "S02718": "Windknollen Ausgaben",
+    "S02719": "Ornithologie Ausgaben",
+    "S02720": "Wildvogelhilfe Ausgaben Allgemein",
+    "S02721": "Wildvogelhilfe Med. Behandlung",
+    "S02722": "Wildvogelhilfe Futterkosten",
+    "S02723": "Wildvogelhilfe Fahrtkosten",
+    "S02730": "Amphibien Ausgaben",
+    "S02740": "Vogelschlag",
+    "S02802": "Geschenke, Jubiläen, Ehrungen",
+    "S02810": "Repräsentationskosten",
+    "S02811": "Werbekosten",
+    "S03215": "Einnahmen Verein",
+    "S03216": "Mitgliedsbeiträge",
+    "S03217": "erhaltenes Honorar",
+    "S03218": "Spenden Windknollen",
+    "S03219": "Spenden Ornithologie",
+    "S03220": "Spenden NABU Jena",
+    "S03222": "Spenden Orchideenführung",
+    "S03223": "Spenden Wildvogelhilfe",
+    "S03224": "Förderung Naturschutzmacher*innen Fond",
+    "S03225": "Spenden Igelhilfe",
+    "S03226": "Spenden Amphibien",
+    "S03227": "Spenden Vogelschlag",
+    "S03251": "Bezahlte Spenden",
+    "S04712": "Nebenkosten des Geldverkehrs",
+    "S05070": "Einnahmen aus Verkauf",
+    "S06329": "Reinigungskosten",
+    "S06354": "Geringwertige Wirtschaftsgüter",
+    "S09000": "Saldovorträge Sachkonten"
+  },
+  "super_group_mappings": {
+    "Mitgliedsbeiträge": "Einnahmen",
+    "Spenden": "Einnahmen",
+    "Bürokosten": "Verwaltungskosten",
+    "Miete": "Verwaltungskosten",
+    "Veranstaltungskosten": "Projektkosten"
+  },
+  "yearly_summary": {
+    "summary": {
+      "Einnahmen": {
+        "Mitgliedsbeiträge": 1500.0,
+        "Spenden": 2000.5
+      },
+      "Verwaltungskosten": {
+        "Bürokosten": -450.0,
+        "Miete": -800.75
+      },
+      "Projektkosten": {
+        "Veranstaltungskosten": -320.5
+      }
+    },
+    "bwa_groups": {
+      "Mitgliedsbeiträge": 1500.0,
+      "Spenden": 2000.5,
+      "Bürokosten": -450.0,
+      "Miete": -800.75,
+      "Veranstaltungskosten": -320.5
+    },
+    "detailed_accounts": {
+      "Mitgliedsbeiträge": {
+        "4000": {
+          "name": "Sachkonto 4000",
+          "amount": 1500.0
+        }
+      },
+      "Spenden": {
+        "4100": {
+          "name": "Sachkonto 4100",
+          "amount": 2000.5
+        }
+      },
+      "Bürokosten": {
+        "6300": {
+          "name": "Sachkonto 6300",
+          "amount": -450.0
+        }
+      },
+      "Miete": {
+        "6400": {
+          "name": "Sachkonto 6400",
+          "amount": -800.75
+        }
+      },
+      "Veranstaltungskosten": {
+        "8100": {
+          "name": "Sachkonto 8100",
+          "amount": -320.5
+        }
+      }
+    },
+    "total": 1929.25
+  },
+  "quarterly_summaries": [
+    {
+      "quarter": 1,
+      "summary": {
+        "Einnahmen": {
+          "Mitgliedsbeiträge": 1500.0,
+          "Spenden": 2000.5
+        },
+        "Verwaltungskosten": {
+          "Bürokosten": -450.0,
+          "Miete": -800.75
+        },
+        "Projektkosten": {
+          "Veranstaltungskosten": -320.5
+        }
+      },
+      "bwa_groups": {
+        "Mitgliedsbeiträge": 1500.0,
+        "Spenden": 2000.5,
+        "Bürokosten": -450.0,
+        "Miete": -800.75,
+        "Veranstaltungskosten": -320.5
+      },
+      "detailed_accounts": {
+        "Mitgliedsbeiträge": {
+          "4000": {
+            "name": "Sachkonto 4000",
+            "amount": 1500.0
+          }
+        },
+        "Spenden": {
+          "4100": {
+            "name": "Sachkonto 4100",
+            "amount": 2000.5
+          }
+        },
+        "Bürokosten": {
+          "6300": {
+            "name": "Sachkonto 6300",
+            "amount": -450.0
+          }
+        },
+        "Miete": {
+          "6400": {
+            "name": "Sachkonto 6400",
+            "amount": -800.75
+          }
+        },
+        "Veranstaltungskosten": {
+          "8100": {
+            "name": "Sachkonto 8100",
+            "amount": -320.5
+          }
+        }
+      },
+      "total": 1929.25,
+      "balance_info": {
+        "opening_balance": 1000.0,
+        "quarter_transactions": 1929.25,
+        "quarter_end_balance": 2929.25
+      }
+    }
+  ],
+  "account_details": [
+    {
+      "account_number": "4000",
+      "account_name": "",
+      "total": 1500.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "",
+          "date": "2024-01-15",
+          "purpose": "",
+          "amount": 1500.0
+        }
+      ]
+    },
+    {
+      "account_number": "4100",
+      "account_name": "",
+      "total": 2000.5,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "",
+          "date": "2024-02-10",
+          "purpose": "",
+          "amount": 2000.5
+        }
+      ]
+    },
+    {
+      "account_number": "6300",
+      "account_name": "",
+      "total": -450.0,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "",
+          "date": "2024-01-20",
+          "purpose": "",
+          "amount": -450.0
+        }
+      ]
+    },
+    {
+      "account_number": "6400",
+      "account_name": "",
+      "total": -800.75,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "",
+          "date": "2024-03-05",
+          "purpose": "",
+          "amount": -800.75
+        }
+      ]
+    },
+    {
+      "account_number": "8100",
+      "account_name": "",
+      "total": -320.5,
+      "transaction_count": 1,
+      "transactions": [
+        {
+          "booking_number": "",
+          "date": "2024-02-15",
+          "purpose": "",
+          "amount": -320.5
+        }
+      ]
+    }
+  ]
+}
