@@ -98,6 +98,15 @@ class GeneralSettingsTab(QWidget):
         self.generate_chart_report_cb.setChecked(True)
         reports_layout.addRow("Balkendiagramm erstellen:", self.generate_chart_report_cb)
         
+        # Footer-Optionen
+        self.show_page_number_cb = QCheckBox()
+        self.show_page_number_cb.setChecked(True)
+        reports_layout.addRow("Seitenzahl anzeigen:", self.show_page_number_cb)
+        
+        self.show_organization_footer_cb = QCheckBox()
+        self.show_organization_footer_cb.setChecked(True)
+        reports_layout.addRow("Organisation in Footer anzeigen:", self.show_organization_footer_cb)
+        
         layout.addWidget(reports_group)
         
         # Einstellungen Export/Import
@@ -317,6 +326,13 @@ class GeneralSettingsTab(QWidget):
         generate_chart = self.settings.value("generate_chart_report", True, type=bool)
         self.generate_chart_report_cb.setChecked(generate_chart)
         
+        # Footer-Optionen laden
+        show_page_number = self.settings.value("show_page_number", True, type=bool)
+        self.show_page_number_cb.setChecked(show_page_number)
+        
+        show_organization_footer = self.settings.value("show_organization_footer", True, type=bool)
+        self.show_organization_footer_cb.setChecked(show_organization_footer)
+        
         # Überschriftenfarbe laden
         header_color = self.settings.value("header_color", "#0000FF")  # Standardfarbe Blau
         if QColor.isValidColor(header_color):
@@ -354,6 +370,10 @@ class GeneralSettingsTab(QWidget):
         self.settings.setValue("generate_account_reports", self.generate_account_reports_cb.isChecked())
         self.settings.setValue("generate_chart_report", self.generate_chart_report_cb.isChecked())
         
+        # Footer-Optionen speichern
+        self.settings.setValue("show_page_number", self.show_page_number_cb.isChecked())
+        self.settings.setValue("show_organization_footer", self.show_organization_footer_cb.isChecked())
+        
         # Überschriftenfarbe speichern
         self.settings.setValue("header_color", self.current_color.name())
         
@@ -368,6 +388,11 @@ class GeneralSettingsTab(QWidget):
         self.quarter_mode_combo.setCurrentText("kumuliere Quartale")
         self.generate_quarterly_reports_cb.setChecked(True)
         self.generate_account_reports_cb.setChecked(True)
+        self.generate_chart_report_cb.setChecked(True)
+        
+        # Footer-Optionen auf Standard zurücksetzen
+        self.show_page_number_cb.setChecked(True)
+        self.show_organization_footer_cb.setChecked(True)
         
         # Überschriftenfarbe auf Standard zurücksetzen
         self.current_color = QColor(0, 0, 255)  # Blau

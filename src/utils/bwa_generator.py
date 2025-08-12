@@ -9,7 +9,8 @@ from reportlab.lib.units import cm
 from reportlab.lib.colors import black, blue, red, gray, green
 from reportlab.lib import colors
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, 
-                               TableStyle, PageBreak, Image)
+                               TableStyle, PageBreak, Image, BaseDocTemplate, 
+                               PageTemplate, Frame)
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing, Rect, String, Line
@@ -139,15 +140,38 @@ class BWAPDFGenerator:
             generate_chart = settings.value("generate_chart_report", True, type=bool)
             quarter_mode = settings.value("quarter_mode", "cumulative")
             
-            # PDF-Dokument erstellen
-            doc = SimpleDocTemplate(
+            # Footer-Callback definieren
+            def add_footer(canvas, doc):
+                """Fügt Footer auf jeder Seite hinzu"""
+                self._add_footer_to_page(canvas, doc)
+            
+            # PDF-Dokument mit Footer-Support erstellen
+            doc = BaseDocTemplate(
                 output_path,
                 pagesize=A4,
                 rightMargin=2*cm,
                 leftMargin=2*cm,
                 topMargin=2*cm,
-                bottomMargin=2*cm
+                bottomMargin=3*cm  # Mehr Platz für Footer
             )
+            
+            # Frame für den Hauptinhalt
+            frame = Frame(
+                2*cm,  # x
+                3*cm,  # y (Platz für Footer lassen)
+                A4[0] - 4*cm,  # width
+                A4[1] - 5*cm,  # height (von Top-Margin bis Bottom-Margin)
+                id='normal'
+            )
+            
+            # PageTemplate mit Footer-Callback
+            template = PageTemplate(
+                id='normal',
+                frames=[frame],
+                onPage=add_footer
+            )
+            
+            doc.addPageTemplates([template])
             
             # Story (Inhalt) sammeln
             story = []
@@ -179,7 +203,13 @@ class BWAPDFGenerator:
                     story.append(PageBreak())
                 
             # PDF erstellen
+            # Für die Gesamtseitenzahl verwenden wir eine Schätzung
+            # oder einen späteren Two-Pass-Ansatz
+            self._total_pages = 0  # Wird bei Bedarf später gesetzt
             doc.build(story)
+            
+            # Nach dem Build kennen wir die Seitenzahl
+            self._total_pages = doc.page
             return True
             
         except Exception as e:
@@ -193,6 +223,41 @@ class BWAPDFGenerator:
             return json.loads(mappings_json)
         except (json.JSONDecodeError, TypeError):
             return {}
+            
+    def _add_footer_to_page(self, canvas, doc):
+        """Fügt Footer zu einer Seite hinzu"""
+        # Footer-Einstellungen laden
+        show_page_number = self.settings.value("show_page_number", True, type=bool)
+        show_organization_footer = self.settings.value("show_organization_footer", True, type=bool)
+        
+        # Footer-Position (unten auf der Seite)
+        footer_y = 1.5 * cm
+        
+        # Seitenzahl links (falls aktiviert)
+        if show_page_number:
+            page_num = canvas.getPageNumber()
+            page_text = f"Seite {page_num}"
+            
+            canvas.saveState()
+            canvas.setFont("Helvetica", 9)
+            canvas.setFillColor(colors.lightgrey)  # Helle Schrift
+            canvas.drawString(2 * cm, footer_y, page_text)
+            canvas.restoreState()
+        
+        # Organisation rechts (falls aktiviert und vorhanden)
+        if show_organization_footer:
+            # Organisation aus den normalen Einstellungen laden (nicht aus organization_data JSON)
+            organization_name = self.settings.value("organization/name", "")
+            
+            if organization_name:
+                canvas.saveState()
+                canvas.setFont("Helvetica", 9)
+                canvas.setFillColor(colors.lightgrey)  # Helle Schrift
+                # Rechts ausrichten
+                text_width = canvas.stringWidth(organization_name, "Helvetica", 9)
+                page_width = A4[0]
+                canvas.drawString(page_width - 2 * cm - text_width, footer_y, organization_name)
+                canvas.restoreState()
             
     def _create_cover_page(self, csv_processor) -> List:
         """Erstellt das Deckblatt mit Organisationsinformationen, Logo und Kontodaten"""
