@@ -516,23 +516,35 @@ class TestRunner:
                 
                 test_badge_url = f"https://img.shields.io/badge/tests-{message}-{color}.svg"
                 
-                # Badge-Pattern finden und ersetzen
+                # Badge-Pattern finden und ersetzen - robustere Methode
                 import re
-                test_pattern = r'!\[Tests\]\([^)]+\)'
-                new_test_badge = f"![Tests]({test_badge_url})"
                 
-                if re.search(test_pattern, content):
-                    content = re.sub(test_pattern, new_test_badge, content)
-                    print("✅ Test-Badge in README aktualisiert")
-                else:
+                # Alle Test-Badge-Zeilen finden und durch eine einzige ersetzen
+                lines = content.split('\n')
+                new_test_badge = f"[![Tests]({test_badge_url})](test/)"
+                new_lines = []
+                test_badge_added = False
+                
+                for line in lines:
+                    if '[![Tests]' in line and 'img.shields.io' in line:
+                        # Test-Badge gefunden - nur das erste behalten, Rest überspringen
+                        if not test_badge_added:
+                            new_lines.append(new_test_badge)
+                            test_badge_added = True
+                            print("✅ Test-Badge in README aktualisiert")
+                        # Weitere Test-Badge-Zeilen überspringen (Duplikate entfernen)
+                    else:
+                        new_lines.append(line)
+                
+                if not test_badge_added:
                     # Badge hinzufügen wenn nicht vorhanden
-                    lines = content.split('\n')
-                    for i, line in enumerate(lines):
+                    for i, line in enumerate(new_lines):
                         if line.startswith('[![Python]'):
-                            lines.insert(i, new_test_badge)
-                            content = '\n'.join(lines)
+                            new_lines.insert(i + 1, new_test_badge)
                             print("✅ Test-Badge zu README hinzugefügt")
                             break
+                
+                content = '\n'.join(new_lines)
             
             # Coverage-Badge einsetzen
             coverage_badge_file = self.project_root / "coverage_badge.json"
@@ -543,8 +555,8 @@ class TestRunner:
                 
                 coverage_badge_url = f"https://img.shields.io/badge/coverage-{message}-{color}.svg"
                 
-                coverage_pattern = r'!\[Coverage\]\([^)]+\)'
-                new_coverage_badge = f"![Coverage]({coverage_badge_url})"
+                coverage_pattern = r'\[!\[Coverage\]\([^)]+\)\]\([^)]+\)'
+                new_coverage_badge = f"[![Coverage]({coverage_badge_url})](test/)"
                 
                 if re.search(coverage_pattern, content):
                     content = re.sub(coverage_pattern, new_coverage_badge, content)
@@ -553,7 +565,7 @@ class TestRunner:
                     # Badge hinzufügen wenn nicht vorhanden
                     lines = content.split('\n')
                     for i, line in enumerate(lines):
-                        if '![Tests]' in line:
+                        if '[![Tests]' in line:
                             lines.insert(i + 1, new_coverage_badge)
                             content = '\n'.join(lines)
                             print("✅ Coverage-Badge zu README hinzugefügt")
