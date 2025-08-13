@@ -8,12 +8,12 @@ help:
 	@echo "  clean     - Löscht Build-Dateien"
 	@echo "  install   - Installiert Abhängigkeiten"
 	@echo "  test      - Führt Tests aus"
-	@echo "  run       - Startet die Anwendung direkt"
+	@echo "  run       - Startet die Anwendung"
 
-# App bauen
+# App erstellen
 build:
 	@echo "🏗️  Erstelle standalone App..."
-	python3 build_app.py
+	python3 clean_build.py
 
 # Build-Dateien löschen
 clean:
@@ -30,7 +30,7 @@ install:
 # Tests ausführen
 test:
 	@echo "🧪 Führe Tests aus..."
-	python3 test_setup.py
+	python3 test/run_all_tests.py
 
 # Anwendung direkt starten (für Entwicklung)
 run:
