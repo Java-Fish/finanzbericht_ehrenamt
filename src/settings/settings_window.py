@@ -140,6 +140,11 @@ class SettingsWindow(QMainWindow):
         
     def load_settings(self):
         """Lädt alle Einstellungen"""
+        # Fenstergeometrie wiederherstellen
+        geometry = self.settings.value("settings_window/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        
         # Alle Tabs laden ihre Einstellungen
         self.general_tab.load_settings()
         self.organization_tab.load_settings()
