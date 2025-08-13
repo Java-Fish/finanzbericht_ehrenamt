@@ -160,6 +160,10 @@ class SettingsWindow(QMainWindow):
         bwa_groups = self.account_mapping_tab.get_all_bwa_groups()
         self.super_group_mapping_tab.update_groups_from_mappings(bwa_groups)
         
+    def update_super_group_mappings(self, super_group_mappings):
+        """Leitet Obergruppen-Zuordnungen an den Super-Group-Tab weiter"""
+        self.super_group_mapping_tab.update_super_group_mappings(super_group_mappings)
+        
     def closeEvent(self, event):
         """Wird beim Schließen des Fensters aufgerufen"""
         # Alle Einstellungen automatisch speichern

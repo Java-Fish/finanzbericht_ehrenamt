@@ -266,3 +266,23 @@ class SuperGroupMappingTab(QWidget):
     def get_super_group_mappings(self):
         """Gibt die aktuellen Obergruppen-Mappings zurück"""
         return self.super_group_mappings.copy()
+        
+    def update_super_group_mappings(self, new_mappings):
+        """Aktualisiert die Obergruppen-Zuordnungen mit neuen Mappings aus CSV-Import"""
+        if not isinstance(new_mappings, dict):
+            return
+            
+        # Neue Mappings zu bestehenden hinzufügen/überschreiben
+        for bwa_group, super_group in new_mappings.items():
+            if bwa_group and super_group:
+                self.super_group_mappings[bwa_group] = super_group
+        
+        # Einstellungen speichern
+        self.save_settings()
+        
+        # Anzeige aktualisieren falls BWA-Gruppen vorhanden sind
+        if self.available_bwa_groups:
+            self.update_groups_from_mappings(self.available_bwa_groups)
+        
+        # Signal senden dass sich Obergruppen-Mappings geändert haben
+        self.super_mappings_changed.emit()

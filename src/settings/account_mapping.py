@@ -349,6 +349,30 @@ class AccountMappingTab(QWidget):
         except (json.JSONDecodeError, TypeError):
             self.account_names = {}
             
+        # Bekannte Sachkonten in der Liste anzeigen
+        self._populate_known_accounts()
+        
+    def _populate_known_accounts(self):
+        """Zeigt alle bekannten Sachkonten in der Liste an"""
+        # Alle bekannten Kontonummern sammeln (aus Mappings und Namen)
+        all_known_accounts = set()
+        all_known_accounts.update(self.account_mappings.keys())
+        all_known_accounts.update(self.account_names.keys())
+        
+        if not all_known_accounts:
+            return  # Keine bekannten Konten
+            
+        # Liste leeren und neu befüllen
+        self.accounts_list.clear()
+        
+        # Sortierte Liste der bekannten Kontonummern
+        sorted_accounts = sorted(all_known_accounts)
+        
+        for account in sorted_accounts:
+            item = QListWidgetItem()
+            self.update_account_item_display(item, account)
+            self.accounts_list.addItem(item)
+            
     def save_settings(self):
         """Speichert die Einstellungen"""
         # Sachkonten-Mappings speichern
@@ -492,6 +516,7 @@ class AccountMappingTab(QWidget):
             # CSV-Datei einlesen
             imported_count = 0
             skipped_count = 0
+            imported_super_groups = {}  # BWA-Gruppe -> Obergruppe
             
             with open(file_path, 'r', encoding='utf-8') as csvfile:
                 # Detect delimiter (try both ; and ,)
@@ -517,11 +542,15 @@ class AccountMappingTab(QWidget):
                     )
                     return
                 
+                # Prüfen ob Obergruppen-Spalte vorhanden ist
+                has_super_groups = 'Obergruppe' in reader.fieldnames
+                
                 # Daten importieren
                 for row in reader:
                     sachkontonr = str(row.get('Sachkontonr.', '')).strip()
                     sachkonto = row.get('Sachkonto', '').strip()
                     bwa_gruppe = row.get('BWA-Gruppe', '').strip()
+                    obergruppe = row.get('Obergruppe', '').strip() if has_super_groups else ""
                     
                     if not sachkontonr:
                         skipped_count += 1
@@ -540,11 +569,19 @@ class AccountMappingTab(QWidget):
                     # BWA-Gruppe importieren (falls vorhanden)
                     if bwa_gruppe:
                         self.account_mappings[normalized_account] = bwa_gruppe
+                        
+                        # Obergruppen-Zuordnung sammeln
+                        if has_super_groups and obergruppe and bwa_gruppe not in imported_super_groups:
+                            imported_super_groups[bwa_gruppe] = obergruppe
                     
                     imported_count += 1
             
             # Einstellungen speichern
             self.save_settings()
+            
+            # Obergruppen-Zuordnungen an Obergruppen-Tab weitergeben
+            if imported_super_groups and hasattr(self.parent(), 'update_super_group_mappings'):
+                self.parent().update_super_group_mappings(imported_super_groups)
             
             # Anzeige aktualisieren
             self.refresh_account_list_display()
@@ -555,6 +592,8 @@ class AccountMappingTab(QWidget):
             # Erfolgsmeldung
             message = f"Import erfolgreich abgeschlossen!\n\n"
             message += f"Importiert: {imported_count} Einträge\n"
+            if imported_super_groups:
+                message += f"Obergruppen-Zuordnungen: {len(imported_super_groups)} BWA-Gruppen\n"
             if skipped_count > 0:
                 message += f"Übersprungen: {skipped_count} Einträge"
             
