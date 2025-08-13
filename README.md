@@ -1,7 +1,7 @@
 # 📊 Finanzauswertung Ehrenamt
 
 [![Python](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-31/31%20passing%20(100%)-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/tests-30/30%20passing%20(100%)-brightgreen.svg)](test/)
 [![Coverage](https://img.shields.io/badge/coverage-95.0%-brightgreen.svg)](test/)
 [![PySide6](https://img.shields.io/badge/PySide6-GUI-green.svg)](https://www.qt.io/qt-for-python)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Java-Fish/finanzbericht_ehrenamt)

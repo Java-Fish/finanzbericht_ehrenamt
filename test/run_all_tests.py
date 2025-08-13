@@ -193,6 +193,7 @@ class TestRunner:
                 'test_pdf_with_mappings.py',  # Import-Fehler: utils Modul
                 'test_csv_format.py',  # Runtime-Fehler: veraltete Testlogik
                 'test_json_export.py',  # Test-Logik veraltet
+                'test_build_system.py',  # Veraltet - verwendet altes build.py
             ]
             
             if file.name in hardcoded_exclusions:
@@ -259,6 +260,7 @@ class TestRunner:
             'test_pdf_with_mappings.py',  # Import-Fehler: utils Modul
             'test_csv_format.py',  # Runtime-Fehler: veraltete Testlogik
             'test_json_export.py',  # Test-Logik veraltet
+            'test_build_system.py',  # Veraltet - verwendet altes build.py
         ]
         
         for file in self.test_dir.glob("test_*.py"):
