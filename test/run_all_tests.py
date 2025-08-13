@@ -155,35 +155,15 @@ class TestRunner:
         
         # Alle Python-Dateien die mit test_ beginnen
         for file in self.test_dir.glob("test_*.py"):
-            # Hardcoded ausgeschlossene Tests (bekannte Problemfälle)
+            # Hardcoded ausgeschlossene Tests (nur noch wenige Problemfälle)
             hardcoded_exclusions = [
                 # Test-Runner und Utility-Scripts
-                'test_manager.py',  # Utility-Script, kein direkter Test
                 'fast_test_runner.py',  # Test-Runner, kein Test selbst
                 'ci_test_runner.py',  # CI-Test-Runner, kein Test selbst
                 'demo_obergruppen.py',  # Demo-Script, kein Test
                 'run_all_tests.py',  # Test-Runner selbst
-                'test_overview.py',  # Übersichts-Script, kein Test
                 
-                # Tests die definitiv GUI benötigen
-                'test_application_startup.py',  # GUI-Hauptfenster
-                'test_dialogs.py',  # GUI-Dialoge
-                'test_widgets.py',  # GUI-Widgets
-                'test_color_settings_ui.py',  # GUI-Einstellungen
-                'test_icon_display.py',  # GUI-Icon-Display
-                'test_footer_display.py',  # GUI-Footer-Display
-                'test_cover_page_demo.py',  # Demo mit GUI
-                
-                # Tests die problematisch sein können
-                'test_csv_processor_edge_cases.py',  # Kann GUI erstellen
-                'test_improved_table.py',  # GUI-Tabellen
-                'test_setup.py',  # Setup mit GUI
-                'test_settings_export.py',  # Erstellt QApplication - kann Dialoge verursachen
-                'test_json_import.py',  # Dauert sehr lange (12s) und kann GUI verwenden
-                'test_logo.py',  # Logo-Display mit GUI
-                
-                # Veraltete Tests mit Import-Problemen (Modulstruktur geändert)
-                'test_account_page.py',  # Import-Fehler: os nicht importiert
+                # Veraltete Tests mit Import-Problemen (falls noch vorhanden)
                 'test_bwa_groups_csv.py',  # Import-Fehler: settings Modul
                 'test_bwa_import_export.py',  # Import-Fehler: settings Modul  
                 'test_chart_spacing.py',  # Import-Fehler: utils Modul
@@ -192,8 +172,7 @@ class TestRunner:
                 'test_json_roundtrip.py',  # Import-Fehler: utils Modul
                 'test_pdf_with_mappings.py',  # Import-Fehler: utils Modul
                 'test_csv_format.py',  # Runtime-Fehler: veraltete Testlogik
-                'test_json_export.py',  # Test-Logik veraltet
-                'test_build_system.py',  # Veraltet - verwendet altes build.py
+                'test_cover_page_demo.py',  # Demo mit GUI
             ]
             
             if file.name in hardcoded_exclusions:
@@ -225,32 +204,12 @@ class TestRunner:
         # Dieselben hardcoded exclusions wie in get_test_files()
         hardcoded_exclusions = [
             # Test-Runner und Utility-Scripts
-            'test_manager.py',  # Utility-Script, kein direkter Test
             'fast_test_runner.py',  # Test-Runner, kein Test selbst
             'ci_test_runner.py',  # CI-Test-Runner, kein Test selbst
             'demo_obergruppen.py',  # Demo-Script, kein Test
             'run_all_tests.py',  # Test-Runner selbst
-            'test_overview.py',  # Übersichts-Script, kein Test
             
-            # Tests die definitiv GUI benötigen
-            'test_application_startup.py',  # GUI-Hauptfenster
-            'test_dialogs.py',  # GUI-Dialoge
-            'test_widgets.py',  # GUI-Widgets
-            'test_color_settings_ui.py',  # GUI-Einstellungen
-            'test_icon_display.py',  # GUI-Icon-Display
-            'test_footer_display.py',  # GUI-Footer-Display
-            'test_cover_page_demo.py',  # Demo mit GUI
-            
-            # Tests die problematisch sein können
-            'test_csv_processor_edge_cases.py',  # Kann GUI erstellen
-            'test_improved_table.py',  # GUI-Tabellen
-            'test_setup.py',  # Setup mit GUI
-            'test_settings_export.py',  # Erstellt QApplication - kann Dialoge verursachen
-            'test_json_import.py',  # Dauert sehr lange (12s) und kann GUI verwenden
-            'test_logo.py',  # Logo-Display mit GUI
-            
-            # Veraltete Tests mit Import-Problemen (Modulstruktur geändert)
-            'test_account_page.py',  # Import-Fehler: os nicht importiert
+            # Veraltete Tests mit Import-Problemen (falls noch vorhanden)
             'test_bwa_groups_csv.py',  # Import-Fehler: settings Modul
             'test_bwa_import_export.py',  # Import-Fehler: settings Modul  
             'test_chart_spacing.py',  # Import-Fehler: utils Modul
@@ -259,8 +218,7 @@ class TestRunner:
             'test_json_roundtrip.py',  # Import-Fehler: utils Modul
             'test_pdf_with_mappings.py',  # Import-Fehler: utils Modul
             'test_csv_format.py',  # Runtime-Fehler: veraltete Testlogik
-            'test_json_export.py',  # Test-Logik veraltet
-            'test_build_system.py',  # Veraltet - verwendet altes build.py
+            'test_cover_page_demo.py',  # Demo mit GUI
         ]
         
         for file in self.test_dir.glob("test_*.py"):
