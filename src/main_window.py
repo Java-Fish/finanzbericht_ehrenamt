@@ -36,8 +36,8 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         """Initialisiert die Benutzeroberfläche"""
         self.setWindowTitle("Finanzauswertung Ehrenamt")
-        self.setMinimumSize(800, 600)
-        self.resize(1000, 700)
+        self.setMinimumSize(600, 400)
+        self.resize(750, 500)
         
         # Window Icon setzen
         self.setWindowIcon(get_app_icon())
@@ -48,7 +48,8 @@ class MainWindow(QMainWindow):
         
         # Layout
         layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(0)
         
         # Menüleiste erstellen
         self.create_menu_bar()
@@ -59,6 +60,8 @@ class MainWindow(QMainWindow):
         self.file_drop_area.reset_requested.connect(self.reset_csv_data)
         self.file_drop_area.settings_requested.connect(self.open_mapping_settings)
         self.file_drop_area.bwa_requested.connect(self.generate_bwa)
+        
+        # Drop-Area füllt den gesamten verfügbaren Platz
         layout.addWidget(self.file_drop_area)
         
         # Drag and Drop aktivieren

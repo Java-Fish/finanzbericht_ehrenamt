@@ -4,7 +4,7 @@ File Drop Area Widget - Ermöglicht Drag & Drop von Dateien
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, 
-                               QFileDialog, QFrame)
+                               QFileDialog, QFrame, QSizePolicy)
 from PySide6.QtCore import Qt, Signal, QMimeData
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFont, QPalette, QPixmap
 import os
@@ -42,19 +42,20 @@ class FileDropArea(QFrame):
         # Layout
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
+        layout.setContentsMargins(40, 40, 40, 40)
         
         # Icon/Bild (Platzhalter)
         self.icon_label = QLabel()
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setMinimumSize(100, 100)
+        self.icon_label.setMinimumSize(80, 80)
         self.icon_label.setStyleSheet("""
             QLabel {
                 border: 2px dashed #aaaaaa;
-                border-radius: 10px;
+                border-radius: 8px;
                 background-color: #f5f5f5;
                 color: #666666;
-                font-size: 48px;
+                font-size: 36px;
             }
         """)
         self.icon_label.setText("📁")
@@ -63,7 +64,7 @@ class FileDropArea(QFrame):
         # Haupttext
         self.main_label = QLabel("Datei hier hineinziehen")
         font = QFont()
-        font.setPointSize(16)
+        font.setPointSize(14)
         font.setBold(True)
         self.main_label.setFont(font)
         self.main_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -87,17 +88,20 @@ class FileDropArea(QFrame):
         
         # Datei auswählen Button
         self.select_button = QPushButton("Datei auswählen")
-        self.select_button.setMinimumHeight(40)
+        self.select_button.setMinimumHeight(35)
         self.select_button.clicked.connect(self.select_file)
         self.select_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 border: none;
                 color: white;
-                padding: 10px 20px;
+                padding: 10px 30px;
                 text-align: center;
                 font-size: 14px;
-                border-radius: 5px;
+                font-weight: bold;
+                border-radius: 6px;
+                min-width: 120px;
+                max-width: 200px;
             }
             QPushButton:hover {
                 background-color: #45a049;
@@ -232,7 +236,10 @@ class FileDropArea(QFrame):
         self.file_info_widget.hide()
         
         # Mindestgröße setzen
-        self.setMinimumSize(400, 300)
+        self.setMinimumSize(350, 250)
+        
+        # Size Policy für vollflächige Anpassung
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Standard-Stil
         self.set_default_style()
